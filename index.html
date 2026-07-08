@@ -3,8 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#102033">
+<meta name="theme-color" content="#102033" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#08111F" media="(prefers-color-scheme: dark)">
+<meta name="description" content="Food GPS — your macro co-pilot. Know exactly what to eat next to stay on route.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Food GPS">
 <title>Food GPS — Know what to eat next</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="favicon.svg">
+<link rel="mask-icon" href="favicon.svg" color="#43E97B">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
   --navy:#102033; --navy2:#183654; --green:#43E97B; --mint:#DDFCE8;
@@ -292,6 +303,154 @@ svg{display:block}
 .toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:12px 18px;border-radius:14px;font-size:14px;font-weight:700;opacity:0;transition:.3s;z-index:200;pointer-events:none;box-shadow:var(--shadow-lg);max-width:88%;display:flex;align-items:center;gap:8px}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 [data-theme="dark"] .toast{background:var(--green);color:var(--navy)}
+
+/* =========================================================================
+   ✨ POLISH LAYER — premium UI/UX pass (Tinder-grade), palette preserved.
+   Appended last so it layers over the base styles without removing them.
+   ========================================================================= */
+:root{
+  --grad-green:linear-gradient(135deg,#5BF08C 0%,#43E97B 45%,#22C56B 100%);
+  --grad-navy:linear-gradient(150deg,#183654 0%,#102033 60%,#0b1c30 100%);
+  --grad-warm:linear-gradient(120deg,#FF9F1C,#FF6B6B);
+  --ring-focus:0 0 0 4px color-mix(in srgb,var(--green) 32%,transparent);
+  --shadow:0 8px 26px rgba(16,32,51,.09),0 2px 6px rgba(16,32,51,.05);
+  --shadow-lg:0 22px 55px rgba(16,32,51,.18),0 6px 16px rgba(16,32,51,.08);
+  --glass:rgba(255,255,255,.72);
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+}
+[data-theme="dark"]{
+  --glass:rgba(17,28,46,.72);
+  --shadow:0 10px 30px rgba(0,0,0,.5);
+  --shadow-lg:0 24px 60px rgba(0,0,0,.62);
+}
+
+html{-webkit-text-size-adjust:100%}
+body{font-family:'Inter','Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;letter-spacing:-.005em;background:
+  radial-gradient(1100px 620px at 88% -12%, color-mix(in srgb,var(--green) 12%,transparent), transparent 60%),
+  radial-gradient(900px 520px at -8% 4%, color-mix(in srgb,var(--carb) 10%,transparent), transparent 55%),
+  var(--bg)}
+h1,h2,h3,h4{font-family:'Manrope','Inter',sans-serif;letter-spacing:-.03em}
+::selection{background:color-mix(in srgb,var(--green) 34%,transparent)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--muted) 34%,transparent);border-radius:99px;border:3px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:color-mix(in srgb,var(--muted) 55%,transparent);background-clip:padding-box}
+:focus-visible{outline:none;box-shadow:var(--ring-focus);border-radius:12px}
+
+/* ---- Buttons: gradient CTA + depth + spring feedback ---- */
+.btn{border-radius:16px;font-weight:800;letter-spacing:-.01em;transition:transform .14s var(--ease-spring),box-shadow .2s,filter .2s,background .2s;will-change:transform}
+.btn-primary{background:var(--grad-green);color:#08321c;box-shadow:0 10px 22px color-mix(in srgb,var(--green) 40%,transparent),inset 0 1px 0 rgba(255,255,255,.35)}
+.btn-primary:hover{filter:brightness(1.04);box-shadow:0 14px 30px color-mix(in srgb,var(--green) 52%,transparent),inset 0 1px 0 rgba(255,255,255,.4);transform:translateY(-2px)}
+.btn-primary:active{transform:translateY(0) scale(.985)}
+.btn-dark{background:var(--grad-navy);color:#fff;box-shadow:0 10px 24px rgba(16,32,51,.28),inset 0 1px 0 rgba(255,255,255,.08)}
+.btn-dark:hover{transform:translateY(-2px);box-shadow:0 14px 32px rgba(16,32,51,.36)}
+.btn-dark:active{transform:translateY(0) scale(.985)}
+.btn-ghost{border:1.5px solid var(--border);background:var(--card);backdrop-filter:blur(6px)}
+.btn-ghost:hover{border-color:color-mix(in srgb,var(--green) 55%,var(--border));color:var(--text);transform:translateY(-1px)}
+.link{transition:opacity .15s,transform .15s}
+.link:hover{opacity:.75;transform:translateX(1px)}
+
+/* ---- Chips ---- */
+.chip{transition:transform .14s var(--ease-spring),border-color .15s,background .15s,box-shadow .15s;box-shadow:0 1px 2px rgba(16,32,51,.04)}
+.chip:hover{border-color:color-mix(in srgb,var(--green) 50%,var(--border));transform:translateY(-1px)}
+.chip:active{transform:scale(.96)}
+.chip.sel{box-shadow:0 4px 12px color-mix(in srgb,var(--green) 26%,transparent)}
+
+/* ---- Cards & surfaces ---- */
+.card{border:1px solid color-mix(in srgb,var(--border) 70%,transparent);transition:transform .18s var(--ease-spring),box-shadow .2s}
+.reccard,.place,.altcard,.craveopt{transition:transform .16s var(--ease-spring),box-shadow .2s,border-color .15s}
+.reccard:hover,.place:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.reccard:active,.place:active,.foodrow:active,.craveopt:active{transform:scale(.99)}
+.widget{border:1px solid color-mix(in srgb,var(--border) 70%,transparent);transition:box-shadow .2s}
+.widget:hover{box-shadow:var(--shadow-lg)}
+
+/* ---- Hero: richer depth + mesh glow ---- */
+.hero{background:
+  radial-gradient(120% 140% at 100% 0%, rgba(67,233,123,.22), transparent 55%),
+  radial-gradient(120% 120% at 0% 100%, rgba(77,150,255,.18), transparent 50%),
+  var(--grad-navy);
+  border:1px solid rgba(255,255,255,.06)}
+.hero .big{background:linear-gradient(180deg,#fff,#d6f7e4);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 2px 10px rgba(67,233,123,.18))}
+.hero .big.over{background:linear-gradient(180deg,#FFE6A8,#FFD166);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.calbar>div{box-shadow:0 0 12px color-mix(in srgb,var(--green) 60%,transparent)}
+
+/* ---- Brand wordmark ---- */
+.brand,.sidebar .sbrand{align-items:center}
+.brand>span:last-child,.sidebar .sbrand{background:linear-gradient(120deg,var(--text),color-mix(in srgb,var(--green) 70%,var(--text)));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+[data-theme="dark"] .brand>span:last-child,[data-theme="dark"] .sidebar .sbrand{background:linear-gradient(120deg,#fff,var(--green));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.iconbtn{transition:transform .14s var(--ease-spring),border-color .15s,background .15s}
+.iconbtn:hover{border-color:color-mix(in srgb,var(--green) 55%,var(--border));transform:translateY(-1px)}
+.iconbtn:active{transform:scale(.94)}
+
+/* ---- Macro rings ---- */
+.macro{border:1px solid color-mix(in srgb,var(--border) 65%,transparent);transition:transform .18s var(--ease-spring),box-shadow .2s}
+.macro:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+.ring svg circle:last-child{filter:drop-shadow(0 1px 4px color-mix(in srgb,currentColor 40%,transparent))}
+
+/* ---- Grade badges: subtle gloss ---- */
+.grade{box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 3px 8px rgba(16,32,51,.16);background-image:linear-gradient(180deg,rgba(255,255,255,.18),transparent)}
+
+/* ---- Bottom nav: floating glass bar w/ active pill (mobile) ---- */
+.nav{left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));border-radius:24px;border:1px solid color-mix(in srgb,var(--border) 80%,transparent);background:var(--glass);backdrop-filter:saturate(160%) blur(18px);-webkit-backdrop-filter:saturate(160%) blur(18px);box-shadow:0 12px 34px rgba(16,32,51,.16);padding:8px 6px calc(8px);gap:2px}
+.nav button{position:relative;border-radius:16px;padding:6px 2px 5px;transition:color .18s}
+.nav button .navic{display:flex;align-items:center;justify-content:center;width:44px;height:30px;border-radius:14px;transition:background .22s var(--ease-spring),transform .22s var(--ease-spring)}
+.nav button.on{color:var(--green)}
+.nav button.on .navic{background:color-mix(in srgb,var(--green) 16%,transparent);transform:translateY(-1px)}
+.nav button:active .navic{transform:scale(.9)}
+
+/* ---- Sidebar (desktop) ---- */
+.sidebar{background:var(--glass);backdrop-filter:saturate(150%) blur(14px);-webkit-backdrop-filter:saturate(150%) blur(14px)}
+.sidebar button{transition:background .16s,color .16s,transform .14s var(--ease-spring)}
+.sidebar button:hover{transform:translateX(2px)}
+.sidebar button.on{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--green) 26%,transparent)}
+
+/* ---- Insight / suggestion cards ---- */
+.insight{box-shadow:0 8px 24px color-mix(in srgb,var(--green) 12%,transparent)}
+.insight .ib{box-shadow:0 6px 14px color-mix(in srgb,var(--green) 40%,transparent)}
+
+/* ---- Sheets / overlays: smoother spring ---- */
+.overlay{background:rgba(8,17,31,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.sheet{box-shadow:var(--shadow-lg);animation:sheetUp .42s var(--ease-spring)}
+@keyframes sheetUp{from{transform:translateY(56px);opacity:0}to{transform:none;opacity:1}}
+.grab{width:48px;height:5px;background:color-mix(in srgb,var(--muted) 40%,transparent)}
+.search{transition:border-color .15s,box-shadow .15s}
+.search:focus{box-shadow:var(--ring-focus)}
+.field input,.field select{transition:border-color .15s,box-shadow .15s}
+.field input:focus,.field select:focus{box-shadow:var(--ring-focus)}
+
+/* ---- Toggles / segmented ---- */
+.toggle{box-shadow:inset 0 1px 3px rgba(16,32,51,.18)}
+.toggle.on{box-shadow:inset 0 1px 3px rgba(16,32,51,.12),0 4px 12px color-mix(in srgb,var(--green) 40%,transparent)}
+.toggle::after{box-shadow:0 2px 5px rgba(16,32,51,.28)}
+.seg{overflow:hidden}
+.seg button{transition:background .18s,color .18s}
+.seg button.on{box-shadow:0 3px 10px color-mix(in srgb,var(--green) 30%,transparent)}
+
+/* ---- Price rows / features ---- */
+.price{transition:transform .16s var(--ease-spring),border-color .15s,box-shadow .2s}
+.price:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:color-mix(in srgb,var(--green) 45%,var(--border))}
+.price.best{box-shadow:0 10px 26px color-mix(in srgb,var(--green) 22%,transparent)}
+
+/* ---- Onboarding options ---- */
+.opt{transition:transform .16s var(--ease-spring),border-color .15s,box-shadow .2s}
+.opt:hover{border-color:color-mix(in srgb,var(--green) 45%,var(--border));transform:translateY(-1px)}
+.opt.sel{box-shadow:0 8px 20px color-mix(in srgb,var(--green) 20%,transparent)}
+.dots i{transition:width .3s var(--ease-spring),background .3s}
+
+/* ---- Toast ---- */
+.toast{border-radius:16px;box-shadow:var(--shadow-lg);backdrop-filter:blur(8px)}
+
+/* ---- Foodrow add button ---- */
+.foodrow .add{transition:transform .14s var(--ease-spring),background .15s,color .15s}
+.foodrow .add:hover{transform:scale(1.08)}
+.foodrow .add:active{transform:scale(.9)}
+
+/* ---- Screen transition: a touch more life ---- */
+.screen.active{animation:fadeUp .4s var(--ease-spring)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms!important;transition-duration:.001ms!important}
+}
 </style>
 </head>
 <body>
@@ -458,8 +617,23 @@ const P={
  f_veg:'<path d="M12 8c1-3 4-4 6-3-.5 3-2 5-5 5M12 8c-1-2-3.5-2.5-5-1 .3 2 1.5 3 4 3M12 8v3a4 4 0 0 1-4 4c-2 0-3-2-3-4 0-1 .5-2 1-2.5M12 11a4 4 0 0 0 4 4c2 0 3-2 3-4"/>'
 };
 function ic(n,o){o=o||{};const s=o.size||22,c=o.color||'currentColor',w=o.w||2,f=o.fill?('fill="'+c+'" '):'';
- return `<span class="ico" style="${o.style||''}"><svg viewBox="0 0 24 24" width="${s}" height="${s}" ${f?'fill="'+c+'"':'fill="none"'} stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${P[n]||''}</svg></span>`; }
-function pinLogo(sz){sz=sz||30;return `<svg viewBox="0 0 40 48" width="${sz}" height="${sz*1.2}"><path d="M20 2C10 2 3 9 3 19c0 12 17 27 17 27s17-15 17-27C37 9 30 2 20 2z" fill="#43E97B"/><circle cx="14.5" cy="16" r="2.6" fill="#FF6B6B"/><circle cx="25.5" cy="16" r="2.6" fill="#4D96FF"/><circle cx="20" cy="24" r="2.6" fill="#FFD166"/><path d="M17 30v6M20 30v6M23 30v6" stroke="#102033" stroke-width="1.6" stroke-linecap="round"/></svg>`;}
+ return `<span class="ico" style="${o.style||''}"><svg viewBox="0 0 24 24" width="${s}" height="${s}" ${f?'fill="'+c+'"':'fill="none"'} stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" shape-rendering="geometricPrecision">${P[n]||''}</svg></span>`; }
+let _logoN=0;
+function pinLogo(sz){sz=sz||30;const u="lg"+(_logoN++);
+ return `<svg viewBox="0 0 44 52" width="${sz}" height="${sz*1.18}" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;filter:drop-shadow(0 3px 7px rgba(16,32,51,.28))" aria-hidden="true">
+ <defs>
+  <linearGradient id="${u}g" x1="6" y1="2" x2="38" y2="50" gradientUnits="userSpaceOnUse">
+   <stop stop-color="#63F296"/><stop offset=".55" stop-color="#43E97B"/><stop offset="1" stop-color="#22C56B"/></linearGradient>
+  <radialGradient id="${u}h" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(16 15) rotate(50) scale(15 11)">
+   <stop stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+ </defs>
+ <path d="M22 1.5C11.2 1.5 2.5 9.7 2.5 20.6 2.5 33.6 22 50.5 22 50.5S41.5 33.6 41.5 20.6C41.5 9.7 32.8 1.5 22 1.5z" fill="url(#${u}g)"/>
+ <path d="M22 1.5C11.2 1.5 2.5 9.7 2.5 20.6 2.5 33.6 22 50.5 22 50.5S41.5 33.6 41.5 20.6C41.5 9.7 32.8 1.5 22 1.5z" fill="url(#${u}h)"/>
+ <circle cx="15" cy="17" r="3" fill="#FF6B6B"/>
+ <circle cx="29" cy="17" r="3" fill="#4D96FF"/>
+ <circle cx="22" cy="25.6" r="3" fill="#FFD166"/>
+ <path d="M18 32v6.4M22 32v6.4M26 32v6.4" stroke="#0c1a2c" stroke-width="1.9" stroke-linecap="round" opacity=".85"/>
+ </svg>`;}
 
 /* =========================================================================
    i18n
