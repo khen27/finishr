@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#102033">
+<title>Food GPS — Know what to eat next</title>
+<style>
+:root{
+  --navy:#102033; --navy2:#183654; --green:#43E97B; --mint:#DDFCE8;
+  --protein:#FF6B6B; --carb:#4D96FF; --fat:#FFD166; --cal:#FF9F1C;
+  --bg:#F7F9FB; --card:#FFFFFF; --text:#17212B; --muted:#7A8694; --border:#E6EBF1;
+  --shadow:0 6px 24px rgba(16,32,51,.08); --shadow-lg:0 14px 40px rgba(16,32,51,.14);
+  --gA:#2FD07A; --gB:#8CD64B; --gC:#FFD166; --gD:#FF9F1C; --gE:#FF6B6B;
+  --r:20px;
+}
+[data-theme="dark"]{
+  --navy:#0c1a2c; --navy2:#12294a; --bg:#08111F; --card:#111C2E; --text:#F4F7FA; --muted:#9DAAB8; --border:#1c2b40;
+  --mint:#12321f; --shadow:0 6px 24px rgba(0,0,0,.4); --shadow-lg:0 14px 40px rgba(0,0,0,.55);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Manrope,sans-serif;background:var(--bg);color:var(--text);transition:background .3s,color .3s}
+h1,h2,h3,h4{margin:0;font-weight:800;letter-spacing:-.02em}
+.muted{color:var(--muted)}
+svg{display:block}
+.ico{display:inline-flex;vertical-align:middle}
+
+/* ---------- App shell ---------- */
+#app{min-height:100vh;display:flex;flex-direction:column}
+.sidebar{display:none}
+.content{flex:1;width:100%;max-width:520px;margin:0 auto;padding:18px 16px 110px}
+.screen{display:none;animation:fade .35s ease}
+.screen.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* bottom nav (mobile) */
+.nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1.5px solid var(--border);display:flex;justify-content:space-around;padding:7px 0 calc(9px + env(safe-area-inset-bottom));z-index:60}
+.nav button{background:none;border:none;font-family:inherit;color:var(--muted);font-size:10px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;flex:1;padding:2px}
+.nav button.on{color:var(--green)}
+.nav .navic{opacity:.9}
+
+/* ---------- Desktop ---------- */
+@media(min-width:900px){
+  #app{flex-direction:row}
+  .nav{display:none}
+  .sidebar{display:flex;flex-direction:column;width:250px;flex:none;height:100vh;position:sticky;top:0;background:var(--card);border-right:1.5px solid var(--border);padding:22px 16px;gap:4px;z-index:60}
+  .sidebar .sbrand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;padding:6px 8px 18px}
+  .sidebar button{display:flex;align-items:center;gap:12px;background:none;border:none;font-family:inherit;color:var(--muted);font-size:15px;font-weight:700;padding:12px 14px;border-radius:14px;cursor:pointer;text-align:left}
+  .sidebar button:hover{background:var(--bg)}
+  .sidebar button.on{background:var(--mint);color:var(--navy)}
+  [data-theme="dark"] .sidebar button.on{color:var(--green)}
+  .sidebar .spacer{flex:1}
+  .content{max-width:1080px;padding:28px 34px 40px}
+  .home-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:22px;align-items:start}
+  .radar-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:22px;align-items:start}
+  .topbar{display:none}
+}
+@media(min-width:1280px){ .content{max-width:1180px} }
+
+/* ---------- Buttons ---------- */
+.btn{border:none;border-radius:15px;padding:14px 18px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;transition:transform .1s,filter .15s;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--green);color:var(--navy)}
+.btn-primary:hover{filter:brightness(1.03)}
+.btn-dark{background:var(--navy);color:#fff}
+.btn-ghost{background:transparent;color:var(--muted);border:1.5px solid var(--border)}
+.btn-sm{padding:10px 14px;font-size:13px;width:auto;border-radius:12px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1.5px solid var(--border);border-radius:999px;padding:8px 13px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.chip.sel{border-color:var(--green);background:var(--mint);color:var(--navy)}
+[data-theme="dark"] .chip.sel{color:var(--green)}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:16px}
+.link{color:var(--green);font-weight:700;font-size:13px;cursor:pointer;background:none;border:none;font-family:inherit;display:inline-flex;align-items:center;gap:4px}
+.sec-title{display:flex;align-items:center;justify-content:space-between;margin:22px 2px 12px}
+.sec-title h3{font-size:16px;display:flex;align-items:center;gap:8px}
+
+/* topbar mobile */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:19px}
+.iconbtn{width:40px;height:40px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);font-weight:800;font-size:13px}
+
+/* ---------- Hero ---------- */
+.hero{background:linear-gradient(140deg,var(--navy),var(--navy2));color:#fff;border-radius:26px;padding:22px;box-shadow:var(--shadow-lg);position:relative;overflow:hidden}
+.hero .glow{position:absolute;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(67,233,123,.35),transparent 70%);top:-90px;right:-60px}
+.hero .htop{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;opacity:.85;position:relative}
+.hero .big{font-size:54px;font-weight:800;line-height:1;margin:8px 0 2px;letter-spacing:-.03em;position:relative}
+.hero .big.over{color:var(--fat)}
+.hero .sub{opacity:.72;font-size:13px;font-weight:600;position:relative}
+.calbar{height:8px;background:rgba(255,255,255,.15);border-radius:99px;margin-top:16px;overflow:hidden;position:relative}
+.calbar>div{height:100%;background:linear-gradient(90deg,var(--cal),var(--green));border-radius:99px;transition:width .6s}
+.routebadge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;padding:6px 12px;border-radius:99px;margin-top:14px;position:relative}
+
+/* ---------- Macro rings ---------- */
+.macros{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+.macro{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:14px 6px;text-align:center}
+.ring{width:80px;height:80px;margin:0 auto 8px;position:relative}
+.ring svg{transform:rotate(-90deg)}
+.ring .val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .num{font-size:21px;font-weight:800;line-height:1}
+.ring .unit{font-size:10px;color:var(--muted);font-weight:700}
+.macro .lbl{font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:5px}
+.macro .left{font-size:11px;color:var(--muted);font-weight:700;margin-top:2px}
+
+/* ---------- Grade badge ---------- */
+.grade{width:30px;height:30px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#fff;flex:none}
+.grade.sm{width:24px;height:24px;font-size:12px;border-radius:8px}
+.g-A{background:var(--gA)}.g-B{background:var(--gB)}.g-C{background:var(--gC);color:#5a4a00}.g-D{background:var(--gD)}.g-E{background:var(--gE)}
+
+/* ---------- Widget (collapsible) ---------- */
+.widget{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;margin-bottom:12px}
+.widget-head{display:flex;align-items:center;gap:12px;padding:15px 16px;cursor:pointer;user-select:none}
+.widget-head .whic{width:40px;height:40px;border-radius:12px;background:var(--mint);display:flex;align-items:center;justify-content:center;flex:none;color:var(--navy)}
+[data-theme="dark"] .widget-head .whic{color:var(--green)}
+.widget-head .wtitle{flex:1;min-width:0}
+.widget-head .wtitle b{font-size:15px;display:block}
+.widget-head .wtitle span{font-size:12px;color:var(--muted);font-weight:600}
+.chev{transition:transform .25s;color:var(--muted);flex:none}
+.widget.open .chev{transform:rotate(180deg)}
+.widget-body{max-height:0;overflow:hidden;transition:max-height .3s ease;padding:0 16px}
+.widget.open .widget-body{max-height:1400px;padding:0 16px 16px}
+.wsummary{display:flex;gap:8px;margin:2px 16px 0}
+.minibar{flex:1;height:6px;border-radius:99px;background:var(--border);overflow:hidden}
+.minibar>div{height:100%;border-radius:99px}
+
+/* log rows */
+.row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}
+.row:last-child{border-bottom:none}
+.ftile{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:none}
+.row .info{flex:1;min-width:0}
+.row .nm{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .mm{font-size:11px;color:var(--muted);font-weight:600;margin-top:1px}
+.row .kc{font-weight:800;font-size:14px}
+.row .del{color:var(--muted);cursor:pointer;padding:4px;display:flex}
+.empty{text-align:center;color:var(--muted);padding:24px 10px;font-size:14px}
+.empty .em-ic{display:flex;justify-content:center;margin-bottom:10px;opacity:.5}
+
+/* insight card */
+.insight{display:flex;gap:12px;align-items:flex-start;background:linear-gradient(135deg,var(--mint),var(--card));border:1.5px solid var(--green);border-radius:var(--r);padding:14px 15px;margin-bottom:14px}
+[data-theme="dark"] .insight{background:linear-gradient(135deg,#123021,var(--card))}
+.insight .ib{width:38px;height:38px;border-radius:11px;background:var(--green);color:var(--navy);display:flex;align-items:center;justify-content:center;flex:none}
+.insight .it b{font-size:14px;display:block;margin-bottom:2px}
+.insight .it p{margin:0;font-size:13px;color:var(--muted);font-weight:600;line-height:1.35}
+.insight .it .icta{margin-top:8px}
+
+/* rec cards */
+.reccat h4{font-size:13px;margin:16px 0 8px;display:flex;align-items:center;gap:7px}
+.dot{width:9px;height:9px;border-radius:50%}
+.reccard{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:15px;padding:11px 13px;margin-bottom:8px;box-shadow:var(--shadow);cursor:pointer;border:1.5px solid transparent;transition:border-color .12s}
+.reccard:hover{border-color:var(--green)}
+.reccard .info{flex:1;min-width:0}
+.reccard .nm{font-weight:700;font-size:14px}
+.reccard .why{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;display:flex;flex-wrap:wrap;gap:2px 8px}
+.reccard .pill{display:inline-flex;align-items:center;gap:3px}
+
+/* locked */
+.locked{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;border-radius:var(--r);padding:16px;text-align:center;box-shadow:var(--shadow)}
+.locked .lk{display:flex;justify-content:center;margin-bottom:6px;color:var(--fat)}
+.locked h4{margin:2px 0 4px;font-size:15px}
+.locked p{margin:0 0 12px;font-size:13px;opacity:.75}
+
+/* delivery badge */
+.dbadge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;padding:3px 8px;border-radius:8px}
+.d-wolt{background:#00c2e8;color:#022}
+.d-foodora{background:#d70f64;color:#fff}
+.d-partner{background:var(--fat);color:#5a4a00}
+
+/* nearby / places */
+.place{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:15px;padding:12px 13px;margin-bottom:9px;box-shadow:var(--shadow);cursor:pointer;border:1.5px solid transparent}
+.place:hover{border-color:var(--green)}
+.place .ptile{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;flex:none;background:var(--mint);color:var(--navy)}
+[data-theme="dark"] .place .ptile{color:var(--green)}
+.place .info{flex:1;min-width:0}
+.place .nm{font-weight:800;font-size:14px;display:flex;align-items:center;gap:6px}
+.place .meta{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;display:flex;flex-wrap:wrap;gap:2px 8px;align-items:center}
+
+/* radar */
+.radarwrap{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;position:relative}
+.radarwrap svg{width:100%;height:auto;display:block;overflow:visible}
+.rdot{cursor:pointer}
+.rdot circle{transition:r .15s}
+.rdot:hover circle.hit{r:9}
+.rlegend{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:10px;font-size:11px;font-weight:700;color:var(--muted)}
+.rlegend span{display:flex;align-items:center;gap:5px}
+
+/* crave */
+.craveopt{display:flex;flex-direction:column;align-items:center;gap:8px;background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:16px 8px;cursor:pointer;transition:.12s}
+.craveopt:hover{border-color:var(--green);transform:translateY(-2px)}
+.craveopt .cvic{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center}
+.craveopt b{font-size:13px;font-weight:800}
+.cravegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(min-width:600px){.cravegrid{grid-template-columns:repeat(4,1fr)}}
+.altcard{background:var(--card);border-radius:15px;box-shadow:var(--shadow);padding:13px;margin-bottom:10px;border:1.5px solid transparent}
+.altcard .ahead{display:flex;align-items:center;gap:11px}
+.altcard .why{font-size:12px;color:var(--muted);font-weight:600;margin-top:8px;line-height:1.4}
+
+/* meal builder tray */
+.tray{position:sticky;bottom:0;background:var(--card);border-top:1.5px solid var(--border);margin:0 -18px -28px;padding:12px 18px 20px;box-shadow:0 -6px 20px rgba(16,32,51,.08)}
+.traytop{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.traychips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}
+.traychip{display:inline-flex;align-items:center;gap:5px;background:var(--mint);color:var(--navy);border-radius:99px;padding:5px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+[data-theme="dark"] .traychip{color:var(--green)}
+.traychip .x{cursor:pointer;display:flex}
+
+/* overlay/sheet */
+.overlay{position:fixed;inset:0;background:rgba(8,17,31,.55);backdrop-filter:blur(3px);display:none;align-items:flex-end;justify-content:center;z-index:100}
+.overlay.show{display:flex}
+@media(min-width:900px){.overlay{align-items:center}}
+.sheet{background:var(--bg);width:100%;max-width:480px;border-radius:26px 26px 0 0;max-height:92vh;overflow-y:auto;padding:14px 18px 28px;animation:up .3s ease}
+@media(min-width:900px){.sheet{border-radius:24px;max-height:88vh;box-shadow:var(--shadow-lg)}}
+@keyframes up{from{transform:translateY(40px);opacity:.5}to{transform:none;opacity:1}}
+.grab{width:44px;height:5px;background:var(--border);border-radius:99px;margin:0 auto 12px}
+.sheet h3{font-size:19px;margin-bottom:4px}
+.search{width:100%;border:1.5px solid var(--border);border-radius:14px;padding:13px 16px 13px 42px;font-size:16px;font-family:inherit;background:var(--card);color:var(--text);margin-bottom:12px}
+.searchwrap{position:relative}
+.searchwrap .sic{position:absolute;left:14px;top:13px;color:var(--muted)}
+.search:focus{outline:none;border-color:var(--green)}
+.tabs{display:flex;gap:7px;margin-bottom:10px;overflow-x:auto;padding-bottom:3px}
+.tabs .chip{flex:none}
+.foodrow{display:flex;align-items:center;gap:11px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer}
+.foodrow .info{flex:1;min-width:0}
+.foodrow .nm{font-weight:700;font-size:14px}
+.foodrow .mm{font-size:11px;color:var(--muted);font-weight:600}
+.foodrow .add{width:30px;height:30px;border-radius:10px;border:1.5px solid var(--green);color:var(--green);background:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+.foodrow .add.in{background:var(--green);color:var(--navy)}
+
+/* amount */
+.amtwrap{text-align:center;padding:6px 0}
+.amtwrap .abig{width:60px;height:60px;border-radius:18px;margin:0 auto 8px;display:flex;align-items:center;justify-content:center}
+.amtctrl{display:flex;align-items:center;justify-content:center;gap:12px;margin:16px 0}
+.amtctrl button{width:46px;height:46px;border-radius:14px;border:1.5px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.amtctrl input{width:96px;text-align:center;font-size:30px;font-weight:800;border:none;background:transparent;color:var(--text);font-family:inherit}
+.amtmac{display:flex;justify-content:center;gap:14px;margin:14px 0;font-size:13px;font-weight:800}
+.amtmac span{display:flex;flex-direction:column;align-items:center;gap:2px}
+.amtmac small{color:var(--muted);font-size:10px;font-weight:700}
+.mealsel{display:flex;gap:7px;justify-content:center;margin:8px 0 14px;flex-wrap:wrap}
+.ratebox{background:var(--card);border-radius:14px;padding:12px;margin:10px 0;display:flex;align-items:center;gap:12px;text-align:left}
+
+/* onboarding */
+.ob{max-width:460px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:26px 18px}
+.ob .step{font-size:12px;font-weight:800;color:var(--green);letter-spacing:.1em;text-transform:uppercase}
+.ob h2{font-size:26px;margin:8px 0 18px;line-height:1.15}
+.dots{display:flex;gap:6px;justify-content:center;margin:20px 0}
+.dots i{width:7px;height:7px;border-radius:99px;background:var(--border)}
+.dots i.on{background:var(--green);width:20px}
+.field{margin-bottom:13px}
+.field label{font-size:13px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px}
+.field input,.field select{width:100%;border:1.5px solid var(--border);border-radius:14px;padding:13px 15px;font-size:17px;font-family:inherit;background:var(--card);color:var(--text);font-weight:700}
+.field input:focus,.field select:focus{outline:none;border-color:var(--green)}
+.optcol{display:flex;flex-direction:column;gap:10px}
+.opt{border:1.5px solid var(--border);border-radius:15px;padding:15px;background:var(--card);cursor:pointer;font-weight:700;font-size:15px;display:flex;align-items:center;gap:12px}
+.opt.sel{border-color:var(--green);background:var(--mint);color:var(--navy)}
+[data-theme="dark"] .opt.sel{color:var(--green)}
+.opt .oic{color:var(--green)}
+.chipwrap{display:flex;flex-wrap:wrap;gap:8px}
+.center{text-align:center}
+
+/* settings */
+.settingrow{display:flex;align-items:center;justify-content:space-between;padding:14px 2px;border-bottom:1px solid var(--border)}
+.settingrow:last-child{border-bottom:none}
+.settingrow .lab{font-weight:700;font-size:15px}
+.settingrow .sub{font-size:12px;color:var(--muted);font-weight:600}
+.toggle{width:48px;height:28px;border-radius:99px;background:var(--border);position:relative;cursor:pointer;transition:.2s;flex:none}
+.toggle.on{background:var(--green)}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s}
+.toggle.on::after{left:23px}
+.seg{display:flex;background:var(--card);border:1.5px solid var(--border);border-radius:14px;overflow:hidden}
+.seg button{flex:1;border:none;background:none;padding:10px;font-family:inherit;font-weight:700;font-size:13px;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--green);color:var(--navy)}
+.badgegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(min-width:600px){.badgegrid{grid-template-columns:repeat(6,1fr)}}
+.badge{background:var(--card);border-radius:15px;padding:13px 6px;text-align:center;box-shadow:var(--shadow)}
+.badge.lockedb{opacity:.4;filter:grayscale(1)}
+.badge .bn{font-size:11px;font-weight:700;margin-top:6px}
+.pricegrid{display:flex;flex-direction:column;gap:10px;margin:12px 0}
+.price{border:1.5px solid var(--border);border-radius:16px;padding:15px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:var(--card)}
+.price.best{border-color:var(--green);background:var(--mint);color:var(--navy)}
+[data-theme="dark"] .price.best{color:var(--green)}
+.price .pt{font-weight:800;font-size:15px}
+.price .pp{font-weight:800;font-size:16px}
+.price .ps{font-size:11px;color:var(--muted);font-weight:600}
+.feat{display:flex;align-items:flex-start;gap:10px;margin:9px 0;font-size:14px;font-weight:600}
+.feat .ck{color:var(--green);flex:none;margin-top:1px}
+.sharecard{background:linear-gradient(140deg,var(--navy),#1d4468);color:#fff;border-radius:22px;padding:22px;position:relative;overflow:hidden}
+.sharecard .sbrand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;opacity:.95}
+.sharecard .sbig{font-size:14px;font-weight:600;opacity:.8;margin-top:16px}
+.sharecard .srow{display:flex;justify-content:space-between;margin-top:12px;gap:8px}
+.sharecard .sm{flex:1;text-align:center;background:rgba(255,255,255,.08);border-radius:13px;padding:11px 4px}
+.sharecard .sm .n{font-size:19px;font-weight:800}
+.sharecard .sm .l{font-size:10px;opacity:.7;font-weight:600;margin-top:2px}
+.sharecard .snext{margin-top:14px;background:rgba(67,233,123,.16);border-radius:13px;padding:11px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+
+.toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:12px 18px;border-radius:14px;font-size:14px;font-weight:700;opacity:0;transition:.3s;z-index:200;pointer-events:none;box-shadow:var(--shadow-lg);max-width:88%;display:flex;align-items:center;gap:8px}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+[data-theme="dark"] .toast{background:var(--green);color:var(--navy)}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- SIDEBAR (desktop) -->
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="content" id="content">
+    <!-- ONBOARDING -->
+    <section id="scr-onboard" class="screen active">
+      <div class="ob">
+        <div id="obBody"></div>
+        <div class="dots" id="obDots"></div>
+        <button class="btn btn-primary" id="obNext">Continue</button>
+        <button class="btn btn-ghost" id="obBack" style="margin-top:8px;display:none">Back</button>
+      </div>
+    </section>
+
+    <!-- HOME -->
+    <section id="scr-home" class="screen">
+      <div class="topbar">
+        <div class="brand"><span id="brandPin"></span><span>Food GPS</span></div>
+        <div style="display:flex;gap:8px">
+          <button class="iconbtn" id="langBtn">EN</button>
+          <button class="iconbtn" id="themeBtn"></button>
+        </div>
+      </div>
+      <div class="home-grid">
+        <div class="colA">
+          <div class="hero"><div class="glow"></div>
+            <div class="htop" id="heroTop"></div>
+            <div class="big" id="calLeft">0</div>
+            <div class="sub"><span id="calLeftLbl">kcal left</span> · <span data-i="target">Daily target</span> <span id="calTarget">0</span></div>
+            <div class="calbar"><div id="calBar" style="width:0%"></div></div>
+            <div class="routebadge" id="routeBadge"></div>
+          </div>
+          <div class="macros" id="macroCircles"></div>
+          <button class="btn btn-primary" id="addFoodBtn" style="margin-bottom:12px"></button>
+          <div id="todayWidget"></div>
+        </div>
+        <div class="colB">
+          <div id="insightHome"></div>
+          <div id="suggestBar"></div>
+          <div id="recSection"></div>
+          <div id="nearbyPreview"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RADAR -->
+    <section id="scr-radar" class="screen">
+      <div class="topbar"><div class="brand" data-i="radar">Radar</div><button class="iconbtn" id="radarFilterBtn" style="width:auto;padding:0 12px;gap:6px"></button></div>
+      <div class="radar-grid">
+        <div>
+          <div class="radarwrap"><div id="radarSvg"></div>
+            <div class="rlegend" id="radarLegend"></div>
+          </div>
+          <div id="radarInsight" style="margin-top:12px"></div>
+        </div>
+        <div>
+          <div class="sec-title"><h3 id="nearbyTitle">Nearby, ranked for your macros</h3></div>
+          <div id="placeList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CRAVE -->
+    <section id="scr-crave" class="screen">
+      <div class="topbar"><div class="brand" data-i="crave">Crave Mode</div></div>
+      <div id="craveHeader"></div>
+      <div id="craveBody"></div>
+    </section>
+
+    <!-- HISTORY -->
+    <section id="scr-history" class="screen">
+      <div class="topbar"><div class="brand" data-i="history">History</div></div>
+      <div id="historyContent"></div>
+    </section>
+
+    <!-- PROFILE -->
+    <section id="scr-profile" class="screen">
+      <div class="topbar"><div class="brand" data-i="profile">Profile</div></div>
+      <div id="profileContent"></div>
+    </section>
+  </div>
+
+  <!-- BOTTOM NAV (mobile) -->
+  <nav class="nav" id="nav"></nav>
+</div>
+
+<!-- FOOD SHEET -->
+<div class="overlay" id="foodOverlay"><div class="sheet" id="foodSheet">
+  <div class="grab"></div>
+  <h3 data-i="buildmeal">Add food &amp; build a meal</h3>
+  <p class="muted" style="font-size:12px;font-weight:600;margin:0 0 12px" data-i="buildsub">Add one item or stack several into a meal.</p>
+  <div class="searchwrap"><span class="sic" id="searchIc"></span><input class="search" id="foodSearch" placeholder="chicken · rice 150g · skyr…" autocomplete="off"></div>
+  <div class="tabs" id="foodTabs"></div>
+  <div id="foodResults"></div>
+  <div id="mealTray"></div>
+</div></div>
+
+<!-- AMOUNT / GENERIC SHEET -->
+<div class="overlay" id="amtOverlay"><div class="sheet" id="amtSheet"><div class="grab"></div><div id="amtBody"></div></div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* =========================================================================
+   ICONS (inline SVG, stroke = currentColor)
+   ========================================================================= */
+const P={
+ home:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/>',
+ radar:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><path d="M12 12 19 7"/>',
+ crave:'<path d="M12 21s-7-4.5-9.2-9C1.3 8.8 3 5.5 6.2 5.5c2 0 3.1 1.3 3.8 2.3.7-1 1.8-2.3 3.8-2.3 3.2 0 4.9 3.3 3.4 6.5"/><path d="M14 12l-2.5 4h4L13 20"/>',
+ history:'<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/><path d="M12 8v4l3 2"/>',
+ profile:'<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c1-3.6 4-5.4 7.5-5.4s6.5 1.8 7.5 5.4"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',minus:'<path d="M5 12h14"/>',
+ close:'<path d="M6 6l12 12M18 6 6 18"/>',check:'<path d="M5 12.5 10 17 19 7"/>',
+ chevD:'<path d="M6 9l6 6 6-6"/>',chevR:'<path d="M9 6l6 6-6 6"/>',
+ search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/>',
+ trash:'<path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/>',
+ lock:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+ sparkle:'<path d="M12 3l1.8 4.7L18.5 9l-4.7 1.8L12 15.5 10.2 10.8 5.5 9l4.7-1.3z"/><path d="M18 15l.7 1.8L20.5 17l-1.8.7L18 19.5l-.7-1.8L15.5 17l1.8-.5z"/>',
+ star:'<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 17l-5.3 2.8 1.1-5.9L3.5 9.7l5.9-.8z"/>',
+ pin:'<path d="M12 21s7-6 7-11a7 7 0 1 0-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/>',
+ loc:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+ tag:'<path d="M20 12l-8 8-8-8V4h8z"/><circle cx="9" cy="9" r="1.3" fill="currentColor"/>',
+ clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+ bike:'<circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M6 17l4-8h4l2 4M9 9h4"/>',
+ store:'<path d="M4 9l1-4h14l1 4M4 9v11h16V9M4 9h16M9 20v-5h6v5"/>',
+ bulb:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.8.7 1 1.3 1 2.5h6c0-1.2.2-1.8 1-2.5A6 6 0 0 0 12 3z"/>',
+ flame:'<path d="M12 3c1 3 4 4 4 8a4 4 0 0 1-8 0c0-1.3.5-2 1-2.7C10 9.5 11 6 12 3z"/>',
+ compass:'<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
+ filter:'<path d="M4 5h16l-6 7v6l-4-2v-4z"/>',
+ fork:'<path d="M7 3v7a2 2 0 0 0 4 0V3M9 12v9M16 3c-1.5 0-2.5 2-2.5 5S15 13 16 13v8"/>',
+ heart:'<path d="M12 20s-7-4.4-9-9c-1-2.4.5-5.5 3.5-5.5 1.9 0 3 1.5 3.5 2.4C11.5 7 12.6 5.5 14.5 5.5c3 0 4.5 3.1 3.5 5.5-2 4.6-6 9-6 9z"/>',
+ target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor"/>',
+ arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+ sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/>',
+ moon:'<path d="M20 14A8 8 0 0 1 10 4a8 8 0 1 0 10 10z"/>',
+ globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>',
+ leaf:'<path d="M5 19c0-8 6-13 14-13 0 8-5 14-13 14 0-3 2-6 6-8"/>',
+ dumbbell:'<path d="M4 9v6M7 7v10M17 7v10M20 9v6M7 12h10"/>',
+ wallet:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M17 14h1"/>',
+ zap:'<path d="M13 3 5 13h5l-1 8 8-10h-5z"/>',
+ /* food category glyphs */
+ f_meat:'<path d="M8 16c-3 0-4-2-4-4 0-4 4-8 8-8 3 0 4 2 4 4M13 8l6 6a3 3 0 0 1-4 4l-1-1M8 16l-3 3M13 8l3-3"/>',
+ f_fish:'<path d="M3 12c3-4 8-5 13-4 2 .4 4 2 5 4-1 2-3 3.6-5 4-5 1-10 0-13-4z"/><path d="M17 12h.01"/>',
+ f_egg:'<path d="M12 3c3 0 6 5 6 9a6 6 0 0 1-12 0c0-4 3-9 6-9z"/>',
+ f_dairy:'<path d="M8 3h8l-1 3v13a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2V6z"/><path d="M8 9h8"/>',
+ f_cheese:'<path d="M3 12l10-6 8 3v7H3z"/><circle cx="9" cy="13" r="1"/><circle cx="15" cy="14" r="1"/>',
+ f_grain:'<path d="M12 3v18M12 6c-2 0-3 1.5-3 3s2 2 3 2M12 6c2 0 3 1.5 3 3s-2 2-3 2M12 12c-2 0-3 1.5-3 3s2 2 3 2M12 12c2 0 3 1.5 3 3s-2 2-3 2"/>',
+ f_bread:'<path d="M5 10a4 4 0 0 1 4-4h6a4 4 0 0 1 0 8v4H5z"/>',
+ f_bowl:'<path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M8 7c0-1.5 1-2.5 2-2.5M13 6c0-1.5 1-2 2-2"/>',
+ f_leaf:'<path d="M4 20c0-9 7-15 16-15 0 9-6 15-15 15 0-4 3-8 8-11"/>',
+ f_apple:'<path d="M12 8c-1-2-3-3-5-2s-2 5 0 8 4 4 5 4 3-1 5-4 2-7 0-8-4 0-5 2z"/><path d="M12 8c0-2 1-4 3-4"/>',
+ f_nut:'<path d="M12 3c3 2 5 5 5 9 0 5-2.5 8-5 8s-5-3-5-8c0-4 2-7 5-9z"/><path d="M12 6v12"/>',
+ f_oil:'<path d="M12 3s5 6 5 10a5 5 0 0 1-10 0c0-4 5-10 5-10z"/>',
+ f_bean:'<path d="M7 5c5 0 10 3 10 8s-4 6-8 6-6-3-6-7 2-7 4-7z"/>',
+ f_sweet:'<path d="M9 9l6 6M9 15l6-6"/><circle cx="12" cy="12" r="4"/><path d="M6 6 4 4M18 6l2-2M6 18l-2 2M18 18l2 2"/>',
+ f_fast:'<path d="M4 10a8 8 0 0 1 16 0zM3 13h18M5 16h14a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3z"/>',
+ f_drink:'<path d="M6 3h12l-1.5 16a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2z"/><path d="M6.5 8h11"/>',
+ f_veg:'<path d="M12 8c1-3 4-4 6-3-.5 3-2 5-5 5M12 8c-1-2-3.5-2.5-5-1 .3 2 1.5 3 4 3M12 8v3a4 4 0 0 1-4 4c-2 0-3-2-3-4 0-1 .5-2 1-2.5M12 11a4 4 0 0 0 4 4c2 0 3-2 3-4"/>'
+};
+function ic(n,o){o=o||{};const s=o.size||22,c=o.color||'currentColor',w=o.w||2,f=o.fill?('fill="'+c+'" '):'';
+ return `<span class="ico" style="${o.style||''}"><svg viewBox="0 0 24 24" width="${s}" height="${s}" ${f?'fill="'+c+'"':'fill="none"'} stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${P[n]||''}</svg></span>`; }
+function pinLogo(sz){sz=sz||30;return `<svg viewBox="0 0 40 48" width="${sz}" height="${sz*1.2}"><path d="M20 2C10 2 3 9 3 19c0 12 17 27 17 27s17-15 17-27C37 9 30 2 20 2z" fill="#43E97B"/><circle cx="14.5" cy="16" r="2.6" fill="#FF6B6B"/><circle cx="25.5" cy="16" r="2.6" fill="#4D96FF"/><circle cx="20" cy="24" r="2.6" fill="#FFD166"/><path d="M17 30v6M20 30v6M23 30v6" stroke="#102033" stroke-width="1.6" stroke-linecap="round"/></svg>`;}
+
+/* =========================================================================
+   i18n
+   ========================================================================= */
+let LANG="en";
+function L(en,cs){return LANG==="cs"?cs:en;}
+const I18N={
+ target:{en:"Daily target",cs:"Denní cíl"},radar:{en:"Radar",cs:"Radar"},crave:{en:"Crave Mode",cs:"Chuťový režim"},
+ history:{en:"History",cs:"Historie"},profile:{en:"Profile",cs:"Profil"},
+ buildmeal:{en:"Add food & build a meal",cs:"Přidat jídlo a sestavit meal"},
+ buildsub:{en:"Add one item or stack several into a meal.",cs:"Přidej jednu položku nebo poskládej celý meal."},
+ nhome:{en:"Home",cs:"Domů"}
+};
+function t(k){return (I18N[k]&&I18N[k][LANG])||k;}
+
+/* =========================================================================
+   Food database (per 100g). cat drives the icon.
+   ========================================================================= */
+const FOODS=[
+ {id:"chicken",en:"Chicken breast",cs:"Kuřecí prsa",cat:"meat",kcal:165,p:31,c:0,f:3.6,pm:"P",srv:150,veg:false,price:1},
+ {id:"turkey",en:"Turkey breast",cs:"Krůtí prsa",cat:"meat",kcal:135,p:30,c:0,f:1,pm:"P",srv:150,veg:false,price:1},
+ {id:"beef",en:"Lean beef",cs:"Hovězí libové",cat:"meat",kcal:217,p:26,c:0,f:12,pm:"P",srv:150,veg:false,price:2},
+ {id:"pork",en:"Pork loin",cs:"Vepřová panenka",cat:"meat",kcal:143,p:26,c:0,f:4,pm:"P",srv:150,veg:false,price:1},
+ {id:"ham",en:"Lean ham",cs:"Libová šunka",cat:"meat",kcal:107,p:18,c:1.5,f:3.5,pm:"P",srv:80,veg:false,price:1},
+ {id:"seitan",en:"Seitan",cs:"Seitan",cat:"meat",kcal:141,p:25,c:14,f:2,pm:"P",srv:100,veg:true,price:1},
+ {id:"salmon",en:"Salmon",cs:"Losos",cat:"fish",kcal:208,p:20,c:0,f:13,pm:"P",srv:120,veg:false,price:2},
+ {id:"tuna",en:"Tuna (canned)",cs:"Tuňák",cat:"fish",kcal:116,p:26,c:0,f:1,pm:"P",srv:100,veg:false,price:1},
+ {id:"cod",en:"Cod",cs:"Treska",cat:"fish",kcal:82,p:18,c:0,f:0.7,pm:"P",srv:150,veg:false,price:2},
+ {id:"shrimp",en:"Shrimp",cs:"Krevety",cat:"fish",kcal:99,p:24,c:0.2,f:0.3,pm:"P",srv:100,veg:false,price:2},
+ {id:"sardines",en:"Sardines",cs:"Sardinky",cat:"fish",kcal:208,p:25,c:0,f:11,pm:"P",srv:100,veg:false,price:1},
+ {id:"egg",en:"Egg",cs:"Vejce",cat:"egg",kcal:143,p:13,c:1.1,f:9.5,pm:"P",srv:60,veg:true,price:1},
+ {id:"eggwhite",en:"Egg whites",cs:"Bílky",cat:"egg",kcal:52,p:11,c:0.7,f:0.2,pm:"P",srv:100,veg:true,price:1},
+ {id:"skyr",en:"Skyr",cs:"Skyr",cat:"dairy",kcal:63,p:11,c:4,f:0.2,pm:"P",srv:150,veg:true,price:1},
+ {id:"cottage",en:"Cottage cheese",cs:"Cottage sýr",cat:"dairy",kcal:98,p:11,c:3.4,f:4.3,pm:"P",srv:150,veg:true,price:1},
+ {id:"greekyog",en:"Greek yogurt",cs:"Řecký jogurt",cat:"dairy",kcal:97,p:9,c:4,f:5,pm:"P",srv:150,veg:true,price:1},
+ {id:"quark",en:"Quark (tvaroh)",cs:"Tvaroh",cat:"dairy",kcal:71,p:12,c:3.5,f:0.3,pm:"P",srv:150,veg:true,price:1},
+ {id:"milk",en:"Milk (semi)",cs:"Mléko polotučné",cat:"dairy",kcal:47,p:3.4,c:5,f:1.6,pm:"P",srv:250,veg:true,price:1},
+ {id:"whey",en:"Whey protein",cs:"Whey protein",cat:"dairy",kcal:400,p:80,c:8,f:6,pm:"P",srv:30,veg:true,price:1},
+ {id:"tofu",en:"Tofu",cs:"Tofu",cat:"bean",kcal:144,p:15,c:3,f:9,pm:"P",srv:120,veg:true,price:1},
+ {id:"tempeh",en:"Tempeh",cs:"Tempeh",cat:"bean",kcal:192,p:20,c:8,f:11,pm:"P",srv:100,veg:true,price:1},
+ {id:"lentils",en:"Lentils",cs:"Čočka",cat:"bean",kcal:116,p:9,c:20,f:0.4,pm:"P",srv:150,veg:true,price:1},
+ {id:"chickpea",en:"Chickpeas",cs:"Cizrna",cat:"bean",kcal:164,p:9,c:27,f:2.6,pm:"C",srv:150,veg:true,price:1},
+ {id:"blackbeans",en:"Black beans",cs:"Černé fazole",cat:"bean",kcal:132,p:9,c:24,f:0.5,pm:"C",srv:150,veg:true,price:1},
+ {id:"edamame",en:"Edamame",cs:"Edamame",cat:"bean",kcal:121,p:12,c:9,f:5,pm:"P",srv:100,veg:true,price:1},
+ {id:"proteinbar",en:"Protein bar",cs:"Proteinová tyčinka",cat:"dairy",kcal:350,p:33,c:35,f:9,pm:"P",srv:60,veg:true,price:1},
+
+ {id:"rice",en:"White rice",cs:"Rýže",cat:"grain",kcal:130,p:2.7,c:28,f:0.3,pm:"C",srv:150,veg:true,price:1},
+ {id:"brownrice",en:"Brown rice",cs:"Hnědá rýže",cat:"grain",kcal:112,p:2.6,c:24,f:0.9,pm:"C",srv:150,veg:true,price:1},
+ {id:"pasta",en:"Pasta",cs:"Těstoviny",cat:"grain",kcal:131,p:5,c:25,f:1.1,pm:"C",srv:180,veg:true,price:1},
+ {id:"oats",en:"Oats",cs:"Ovesné vločky",cat:"grain",kcal:389,p:17,c:66,f:7,pm:"C",srv:50,veg:true,price:1},
+ {id:"quinoa",en:"Quinoa",cs:"Quinoa",cat:"grain",kcal:120,p:4.4,c:21,f:1.9,pm:"C",srv:150,veg:true,price:1},
+ {id:"couscous",en:"Couscous",cs:"Kuskus",cat:"grain",kcal:112,p:3.8,c:23,f:0.2,pm:"C",srv:150,veg:true,price:1},
+ {id:"buckwheat",en:"Buckwheat",cs:"Pohanka",cat:"grain",kcal:92,p:3.4,c:20,f:0.6,pm:"C",srv:150,veg:true,price:1},
+ {id:"muesli",en:"Muesli",cs:"Müsli",cat:"grain",kcal:363,p:10,c:66,f:6,pm:"C",srv:50,veg:true,price:1},
+ {id:"cornflakes",en:"Cornflakes",cs:"Lupínky",cat:"grain",kcal:357,p:7,c:84,f:0.4,pm:"C",srv:40,veg:true,price:1},
+ {id:"ricecake",en:"Rice cakes",cs:"Rýžové chlebíčky",cat:"grain",kcal:387,p:8,c:82,f:3,pm:"C",srv:20,veg:true,price:1},
+ {id:"bread",en:"Whole-grain bread",cs:"Celozrnný chléb",cat:"bread",kcal:247,p:9,c:41,f:3.4,pm:"C",srv:50,veg:true,price:1},
+ {id:"tortilla",en:"Tortilla wrap",cs:"Tortilla",cat:"bread",kcal:310,p:8,c:52,f:8,pm:"C",srv:60,veg:true,price:1},
+ {id:"bagel",en:"Bagel",cs:"Bagel",cat:"bread",kcal:250,p:10,c:49,f:1.5,pm:"C",srv:80,veg:true,price:1},
+ {id:"potato",en:"Potatoes",cs:"Brambory",cat:"veg",kcal:77,p:2,c:17,f:0.1,pm:"C",srv:200,veg:true,price:1},
+ {id:"sweetpotato",en:"Sweet potato",cs:"Batáty",cat:"veg",kcal:86,p:1.6,c:20,f:0.1,pm:"C",srv:200,veg:true,price:1},
+ {id:"corn",en:"Corn",cs:"Kukuřice",cat:"veg",kcal:96,p:3.4,c:21,f:1.5,pm:"C",srv:120,veg:true,price:1},
+ {id:"peas",en:"Green peas",cs:"Hrášek",cat:"veg",kcal:81,p:5,c:14,f:0.4,pm:"C",srv:120,veg:true,price:1},
+
+ {id:"banana",en:"Banana",cs:"Banán",cat:"fruit",kcal:89,p:1.1,c:23,f:0.3,pm:"C",srv:120,veg:true,price:1},
+ {id:"apple",en:"Apple",cs:"Jablko",cat:"fruit",kcal:52,p:0.3,c:14,f:0.2,pm:"C",srv:150,veg:true,price:1},
+ {id:"orange",en:"Orange",cs:"Pomeranč",cat:"fruit",kcal:47,p:0.9,c:12,f:0.1,pm:"C",srv:150,veg:true,price:1},
+ {id:"berries",en:"Mixed berries",cs:"Lesní ovoce",cat:"fruit",kcal:57,p:0.7,c:14,f:0.3,pm:"C",srv:120,veg:true,price:1},
+ {id:"strawberry",en:"Strawberries",cs:"Jahody",cat:"fruit",kcal:32,p:0.7,c:8,f:0.3,pm:"C",srv:150,veg:true,price:1},
+ {id:"grapes",en:"Grapes",cs:"Hrozny",cat:"fruit",kcal:69,p:0.7,c:18,f:0.2,pm:"C",srv:120,veg:true,price:1},
+ {id:"pear",en:"Pear",cs:"Hruška",cat:"fruit",kcal:57,p:0.4,c:15,f:0.1,pm:"C",srv:150,veg:true,price:1},
+ {id:"mango",en:"Mango",cs:"Mango",cat:"fruit",kcal:60,p:0.8,c:15,f:0.4,pm:"C",srv:150,veg:true,price:1},
+ {id:"pineapple",en:"Pineapple",cs:"Ananas",cat:"fruit",kcal:50,p:0.5,c:13,f:0.1,pm:"C",srv:120,veg:true,price:1},
+ {id:"kiwi",en:"Kiwi",cs:"Kiwi",cat:"fruit",kcal:61,p:1.1,c:15,f:0.5,pm:"C",srv:100,veg:true,price:1},
+ {id:"blueberry",en:"Blueberries",cs:"Borůvky",cat:"fruit",kcal:57,p:0.7,c:14,f:0.3,pm:"C",srv:100,veg:true,price:1},
+ {id:"watermelon",en:"Watermelon",cs:"Meloun",cat:"fruit",kcal:30,p:0.6,c:8,f:0.2,pm:"C",srv:200,veg:true,price:1},
+
+ {id:"broccoli",en:"Broccoli",cs:"Brokolice",cat:"veg",kcal:34,p:2.8,c:7,f:0.4,pm:"C",srv:150,veg:true,price:1},
+ {id:"spinach",en:"Spinach",cs:"Špenát",cat:"veg",kcal:23,p:2.9,c:3.6,f:0.4,pm:"C",srv:100,veg:true,price:1},
+ {id:"tomato",en:"Tomato",cs:"Rajče",cat:"veg",kcal:18,p:0.9,c:3.9,f:0.2,pm:"C",srv:120,veg:true,price:1},
+ {id:"cucumber",en:"Cucumber",cs:"Okurka",cat:"veg",kcal:15,p:0.7,c:3.6,f:0.1,pm:"C",srv:120,veg:true,price:1},
+ {id:"carrot",en:"Carrot",cs:"Mrkev",cat:"veg",kcal:41,p:0.9,c:10,f:0.2,pm:"C",srv:120,veg:true,price:1},
+ {id:"bellpepper",en:"Bell pepper",cs:"Paprika",cat:"veg",kcal:31,p:1,c:6,f:0.3,pm:"C",srv:120,veg:true,price:1},
+ {id:"cauliflower",en:"Cauliflower",cs:"Květák",cat:"veg",kcal:25,p:1.9,c:5,f:0.3,pm:"C",srv:150,veg:true,price:1},
+ {id:"zucchini",en:"Zucchini",cs:"Cuketa",cat:"veg",kcal:17,p:1.2,c:3.1,f:0.3,pm:"C",srv:150,veg:true,price:1},
+ {id:"mushroom",en:"Mushrooms",cs:"Žampiony",cat:"veg",kcal:22,p:3.1,c:3.3,f:0.3,pm:"C",srv:120,veg:true,price:1},
+ {id:"greenbeans",en:"Green beans",cs:"Fazolky",cat:"veg",kcal:31,p:1.8,c:7,f:0.2,pm:"C",srv:120,veg:true,price:1},
+
+ {id:"avocado",en:"Avocado",cs:"Avokádo",cat:"fruit",kcal:160,p:2,c:9,f:15,pm:"F",srv:70,veg:true,price:2},
+ {id:"oliveoil",en:"Olive oil",cs:"Olivový olej",cat:"oil",kcal:884,p:0,c:0,f:100,pm:"F",srv:10,veg:true,price:1},
+ {id:"butter",en:"Butter",cs:"Máslo",cat:"oil",kcal:717,p:0.9,c:0.1,f:81,pm:"F",srv:10,veg:true,price:1},
+ {id:"walnuts",en:"Walnuts",cs:"Vlašské ořechy",cat:"nut",kcal:654,p:15,c:14,f:65,pm:"F",srv:25,veg:true,price:2},
+ {id:"almonds",en:"Almonds",cs:"Mandle",cat:"nut",kcal:579,p:21,c:22,f:50,pm:"F",srv:25,veg:true,price:2},
+ {id:"peanutbutter",en:"Peanut butter",cs:"Arašídové máslo",cat:"nut",kcal:588,p:25,c:20,f:50,pm:"F",srv:20,veg:true,price:1},
+ {id:"cashews",en:"Cashews",cs:"Kešu",cat:"nut",kcal:553,p:18,c:30,f:44,pm:"F",srv:25,veg:true,price:2},
+ {id:"chia",en:"Chia seeds",cs:"Chia",cat:"nut",kcal:486,p:17,c:42,f:31,pm:"F",srv:20,veg:true,price:1},
+ {id:"pumpkinseed",en:"Pumpkin seeds",cs:"Dýňová semínka",cat:"nut",kcal:559,p:30,c:11,f:49,pm:"F",srv:25,veg:true,price:1},
+ {id:"cheddar",en:"Cheddar",cs:"Čedar",cat:"cheese",kcal:403,p:25,c:1.3,f:33,pm:"F",srv:40,veg:true,price:1},
+ {id:"mozzarella",en:"Mozzarella",cs:"Mozzarella",cat:"cheese",kcal:280,p:22,c:2.2,f:22,pm:"F",srv:60,veg:true,price:1},
+ {id:"feta",en:"Feta",cs:"Feta",cat:"cheese",kcal:264,p:14,c:4,f:21,pm:"F",srv:50,veg:true,price:1},
+ {id:"hummus",en:"Hummus",cs:"Hummus",cat:"bean",kcal:166,p:8,c:14,f:10,pm:"F",srv:60,veg:true,price:1},
+ {id:"darkchoc",en:"Dark chocolate",cs:"Hořká čokoláda",cat:"sweet",kcal:546,p:5,c:61,f:31,pm:"F",srv:20,veg:true,price:1},
+
+ {id:"honey",en:"Honey",cs:"Med",cat:"sweet",kcal:304,p:0.3,c:82,f:0,pm:"C",srv:20,veg:true,price:1},
+ {id:"granolabar",en:"Granola bar",cs:"Müsli tyčinka",cat:"sweet",kcal:471,p:8,c:64,f:20,pm:"C",srv:40,veg:true,price:1},
+ {id:"pizza",en:"Pizza slice",cs:"Kus pizzy",cat:"fast",kcal:266,p:11,c:33,f:10,pm:"F",srv:120,veg:true,price:2},
+ {id:"burger",en:"Cheeseburger",cs:"Cheeseburger",cat:"fast",kcal:295,p:15,c:24,f:15,pm:"F",srv:150,veg:false,price:2},
+ {id:"fries",en:"French fries",cs:"Hranolky",cat:"fast",kcal:312,p:3.4,c:41,f:15,pm:"F",srv:120,veg:true,price:1},
+ {id:"chips",en:"Potato chips",cs:"Brambůrky",cat:"fast",kcal:536,p:7,c:53,f:34,pm:"F",srv:30,veg:true,price:1},
+ {id:"icecream",en:"Ice cream",cs:"Zmrzlina",cat:"sweet",kcal:207,p:3.5,c:24,f:11,pm:"F",srv:80,veg:true,price:1},
+ {id:"chocmilk",en:"Milk chocolate",cs:"Mléčná čokoláda",cat:"sweet",kcal:535,p:8,c:59,f:30,pm:"F",srv:25,veg:true,price:1},
+ {id:"croissant",en:"Croissant",cs:"Croissant",cat:"bread",kcal:406,p:8,c:46,f:21,pm:"F",srv:60,veg:true,price:1},
+ {id:"donut",en:"Donut",cs:"Kobliha",cat:"sweet",kcal:452,p:5,c:51,f:25,pm:"F",srv:60,veg:true,price:1}
+];
+const FMAP=Object.fromEntries(FOODS.map(f=>[f.id,f]));
+const CAT_ICON={meat:"f_meat",fish:"f_fish",egg:"f_egg",dairy:"f_dairy",cheese:"f_cheese",bean:"f_bean",grain:"f_grain",bread:"f_bread",veg:"f_veg",fruit:"f_apple",nut:"f_nut",oil:"f_oil",sweet:"f_sweet",fast:"f_fast",drink:"f_drink"};
+const MC={P:"var(--protein)",C:"var(--carb)",F:"var(--fat)"};
+const CAT_TINT={meat:"var(--protein)",fish:"var(--protein)",egg:"var(--protein)",dairy:"var(--protein)",bean:"var(--protein)",cheese:"var(--fat)",nut:"var(--fat)",oil:"var(--fat)",grain:"var(--carb)",bread:"var(--carb)",veg:"var(--carb)",fruit:"var(--carb)",sweet:"var(--cal)",fast:"var(--cal)",drink:"var(--carb)"};
+function fname(f){return LANG==="cs"?f.cs:f.en;}
+function foodTile(f,size){size=size||40;const col=CAT_TINT[f.cat]||"var(--muted)";
+ return `<span class="ftile" style="width:${size}px;height:${size}px;background:${hexA(col,.14)};color:${col}">${ic(CAT_ICON[f.cat]||"fork",{size:size*0.55})}</span>`;}
+function hexA(v,a){/* v may be css var; approximate by wrapping */ return v.startsWith("var")?`color-mix(in srgb, ${v} ${Math.round(a*100)}%, transparent)`:v;}
+
+/* =========================================================================
+   State
+   ========================================================================= */
+const todayKey=()=>new Date().toISOString().slice(0,10);
+const DEF={onboarded:false,lang:"en",dark:false,premium:false,goal:"maintain",
+ targets:{calories:2200,protein:150,carbs:220,fat:70},recThreshold:50,
+ interests:[],city:"Prague",locEnabled:true,logs:{},favorites:[],recent:[]};
+let S=load();
+function load(){try{const r=JSON.parse(localStorage.getItem("foodgps2"));return r?Object.assign({},DEF,r):structuredClone(DEF);}catch(e){return structuredClone(DEF);}}
+function save(){localStorage.setItem("foodgps2",JSON.stringify(S));}
+function todayLog(){return S.logs[todayKey()]||(S.logs[todayKey()]=[]);}
+function has(i){return S.interests.includes(i);}
+
+/* =========================================================================
+   Totals / remaining / scoring / grading
+   ========================================================================= */
+function totalsFor(e){return e.reduce((a,x)=>({kcal:a.kcal+x.kcal,p:a.p+x.p,c:a.c+x.c,f:a.f+x.f}),{kcal:0,p:0,c:0,f:0});}
+function remaining(){const tot=totalsFor(todayLog());return{kcal:S.targets.calories-tot.kcal,p:S.targets.protein-tot.p,c:S.targets.carbs-tot.c,f:S.targets.fat-tot.f,tot};}
+function servingMacros(f,g){const r=g/100;return{kcal:f.kcal*r,p:f.p*r,c:f.c*r,f:f.f*r};}
+/* Score a macro payload {kcal,p,c,f} for "how good a choice is this right now".
+   Uses macro-ALIGNMENT (cosine of the food's macro-calorie mix vs. what you still
+   need) so it grades sensibly at any point in the day, plus a protein-priority
+   reward and an overshoot penalty that bites when little room is left. */
+function scorePayload(m,extra){
+ const rem=remaining(),tgt=S.targets;extra=extra||{};
+ const needP=Math.max(0,rem.p),needC=Math.max(0,rem.c),needF=Math.max(0,rem.f),needK=Math.max(0,rem.kcal);
+ let nP=needP*4,nC=needC*4,nF=needF*9;
+ if(nP+nC+nF<10){nP=tgt.protein*4;nC=tgt.carbs*4;nF=tgt.fat*9;} // all filled -> use target ratios
+ const fP=m.p*4,fC=m.c*4,fF=m.f*9;
+ const dot=nP*fP+nC*fC+nF*fF;
+ const magN=Math.hypot(nP,nC,nF),magF=Math.hypot(fP,fC,fF)||1;
+ const align=dot/((magN*magF)||1); // 0..1 : macro-mix match
+ // reward ACTUAL protein grams delivered toward the gap (not just density)
+ const protBonus=needP>3?Math.min(m.p,needP)/(tgt.protein||1)*0.45:0;
+ // substance: when lots of room remains, nudge toward meals that actually feed you
+ const sub=needK>tgt.calories*0.4?Math.min(1,m.kcal/260)*0.12:0;
+ let over=0;
+ if(m.f>needF+3)over+=(m.f-needF)/(tgt.fat||1)*0.55;
+ if(needK<tgt.calories*0.55&&m.kcal>needK+50)over+=(m.kcal-needK)/(tgt.calories||1)*1.0;
+ if(rem.kcal<0)over+=0.25;
+ const raw=align*0.72+protBonus+sub+(extra.pref||0)+(extra.junk||0)-over;
+ return raw;
+}
+function scoreFood(f){const g=f.srv,m=servingMacros(f,g);
+ const junk=["pizza","burger","fries","chips","donut","icecream","croissant","chocmilk","granolabar"].includes(f.id)?-0.10:0.03;
+ let pref=S.favorites.includes(f.id)?0.12:0;
+ if(has("highprotein")&&f.pm==="P")pref+=0.06;
+ if(has("budget")&&f.price===1)pref+=0.04;
+ const raw=scorePayload(m,{pref,junk});
+ return{food:f,g,m,raw};}
+function matchPct(raw){return Math.max(5,Math.min(99,Math.round(raw*105+8)));}
+function grade(pct){return pct>=80?"A":pct>=64?"B":pct>=48?"C":pct>=32?"D":"E";}
+function gradeBadge(pct,sm){const g=grade(pct);return `<span class="grade g-${g}${sm?' sm':''}">${g}</span>`;}
+function stars(pct){return Math.max(1,Math.min(5,Math.round(pct/20)));}
+function dietOk(f){if(has("vegan")&&(!f.veg||["dairy","cheese","egg"].includes(f.cat)))return false;if(has("vegetarian")&&!f.veg)return false;if(has("lowcarb")&&f.c>40)return false;return true;}
+function whyLines(m){const rem=remaining(),out=[];
+ if(m.p>=8&&rem.p>5)out.push(["dumbbell",L("Adds protein","Dodá bílkoviny")]);
+ if(m.c>2&&m.c<=Math.max(0,rem.c)+6)out.push(["f_grain",L("Fits carbs","Sedí sacharidy")]);
+ if(m.f<=Math.max(0,rem.f))out.push(["check",L("Keeps fat low","Drží tuk nízko")]);
+ if(m.f>Math.max(0,rem.f)+3)out.push(["flame",L("High fat today","Hodně tuku dnes")]);
+ if(m.kcal>Math.max(0,rem.kcal)+40)out.push(["flame",L("Over calories","Přes kalorie")]);
+ if(!out.length)out.push(["check",L("Balanced pick","Vyvážená volba")]);
+ return out.slice(0,3).map(x=>`<span class="pill">${ic(x[0],{size:12})}${x[1]}</span>`).join("");}
+function ratingText(pct){if(LANG==="cs")return pct>=80?"Skvěle sedí dnes.":pct>=60?"Dobrá volba na teď.":pct>=40?"Ok, hlídej zbytek dne.":"Dnes se těžko vejde.";
+ return pct>=80?"Great fit today.":pct>=60?"Solid choice right now.":pct>=40?"Okay fit — mind the rest of today.":"Hard to fit today.";}
+
+/* =========================================================================
+   Places (nearby / radar) + delivery
+   ========================================================================= */
+function price(p){return LANG==="cs"?p.czk+" Kč":"€"+p.eur.toFixed(2);}
+const PLACES=[
+ {id:"freshbowl",en:"Fresh Bowl Co.",cs:"Fresh Bowl Co.",type:"restaurant",dist:220,ang:20,premium:false,partner:"wolt",tags:["highprotein"],
+  items:[{en:"Chicken Poke Bowl",cs:"Kuřecí poke bowl",kcal:520,p:45,c:55,f:14,price:{czk:229,eur:9.5},meals:["lunch","dinner"]},
+         {en:"Tofu Green Bowl",cs:"Tofu green bowl",kcal:430,p:22,c:52,f:14,price:{czk:199,eur:8.3},meals:["lunch","dinner"],veg:true}]},
+ {id:"grill",en:"Grill Nation",cs:"Grill Nation",type:"restaurant",dist:450,ang:75,premium:true,partner:"foodora",tags:["highprotein"],
+  items:[{en:"Steak & Greens",cs:"Steak a zelenina",kcal:610,p:52,c:18,f:34,price:{czk:349,eur:14.5},meals:["dinner"]},
+         {en:"Grilled Chicken Plate",cs:"Grilované kuře",kcal:480,p:56,c:30,f:12,price:{czk:279,eur:11.6},meals:["lunch","dinner"]}]},
+ {id:"tesco",en:"Tesco Express",cs:"Tesco Express",type:"grocery",dist:170,ang:135,premium:false,partner:null,tags:["budget"],
+  items:[{en:"Skyr + Berries",cs:"Skyr s ovocem",kcal:190,p:18,c:22,f:1,price:{czk:49,eur:2.0},meals:["breakfast","snack"],veg:true},
+         {en:"Rotisserie Chicken 1/4",cs:"Pečené kuře 1/4",kcal:300,p:38,c:0,f:16,price:{czk:79,eur:3.3},meals:["lunch","dinner"]}]},
+ {id:"sushi",en:"Sushi Point",cs:"Sushi Point",type:"restaurant",dist:600,ang:200,premium:false,partner:"wolt",tags:[],
+  items:[{en:"Salmon Nigiri Set",cs:"Losos nigiri set",kcal:450,p:32,c:55,f:12,price:{czk:259,eur:10.8},meals:["lunch","dinner"]},
+         {en:"Edamame",cs:"Edamame",kcal:150,p:13,c:11,f:6,price:{czk:69,eur:2.9},meals:["snack"],veg:true}]},
+ {id:"greenleaf",en:"Green Leaf Salads",cs:"Green Leaf saláty",type:"cafe",dist:320,ang:290,premium:false,partner:"foodora",tags:["highprotein","lowcarb"],
+  items:[{en:"Protein Caesar",cs:"Protein Caesar",kcal:410,p:40,c:14,f:22,price:{czk:189,eur:7.9},meals:["lunch"]},
+         {en:"Quinoa Power Salad",cs:"Quinoa salát",kcal:380,p:16,c:44,f:15,price:{czk:169,eur:7.0},meals:["lunch"],veg:true}]},
+ {id:"muscle",en:"Muscle Kitchen",cs:"Muscle Kitchen",type:"restaurant",dist:880,ang:340,premium:true,partner:"wolt",tags:["highprotein"],
+  items:[{en:"Lean Gains Bowl",cs:"Lean Gains bowl",kcal:540,p:58,c:48,f:10,price:{czk:299,eur:12.5},meals:["lunch","dinner"]},
+         {en:"High-Protein Prep x2",cs:"High-protein prep x2",kcal:900,p:90,c:70,f:24,price:{czk:499,eur:20.8},meals:["dinner"]}]},
+ {id:"burrito",en:"Burrito Bros",cs:"Burrito Bros",type:"fast",dist:700,ang:110,premium:false,partner:"foodora",tags:["budget"],
+  items:[{en:"Chicken Burrito",cs:"Kuřecí burrito",kcal:650,p:38,c:66,f:24,price:{czk:189,eur:7.9},meals:["lunch","dinner"]},
+         {en:"Veggie Burrito",cs:"Veggie burrito",kcal:600,p:18,c:82,f:20,price:{czk:159,eur:6.6},meals:["lunch"],veg:true}]},
+ {id:"bakery",en:"Corner Bakery",cs:"Rohová pekárna",type:"cafe",dist:150,ang:250,premium:false,partner:null,tags:[],
+  items:[{en:"Egg & Protein Bread",cs:"Vejce a protein chléb",kcal:340,p:24,c:32,f:12,price:{czk:99,eur:4.1},meals:["breakfast","brunch"],veg:true},
+         {en:"Butter Croissant",cs:"Máslový croissant",kcal:280,p:6,c:31,f:15,price:{czk:59,eur:2.5},meals:["breakfast","snack"],veg:true}]},
+ {id:"smoothie",en:"Smoothie Bar",cs:"Smoothie Bar",type:"cafe",dist:400,ang:165,premium:false,partner:"wolt",tags:["highprotein"],
+  items:[{en:"Protein Smoothie",cs:"Protein smoothie",kcal:280,p:30,c:32,f:4,price:{czk:129,eur:5.4},meals:["breakfast","snack"],veg:true},
+         {en:"Acai Bowl",cs:"Acai bowl",kcal:420,p:8,c:70,f:12,price:{czk:189,eur:7.9},meals:["breakfast","brunch"],veg:true}]},
+ {id:"kebab",en:"Kebab House",cs:"Kebab House",type:"fast",dist:520,ang:50,premium:false,partner:"foodora",tags:["budget"],
+  items:[{en:"Chicken Kebab Plate",cs:"Kuřecí kebab talíř",kcal:620,p:44,c:52,f:26,price:{czk:159,eur:6.6},meals:["lunch","dinner"]}]},
+ {id:"pho",en:"Pho Real",cs:"Pho Real",type:"restaurant",dist:850,ang:305,premium:false,partner:"wolt",tags:[],
+  items:[{en:"Chicken Pho",cs:"Kuřecí pho",kcal:430,p:34,c:52,f:8,price:{czk:199,eur:8.3},meals:["lunch","dinner"]}]},
+ {id:"billa",en:"Billa Market",cs:"Billa",type:"grocery",dist:650,ang:230,premium:false,partner:null,tags:["budget"],
+  items:[{en:"Cottage + Rye",cs:"Cottage a žitný",kcal:230,p:20,c:26,f:6,price:{czk:55,eur:2.3},meals:["breakfast","snack"],veg:true},
+         {en:"Turkey Slices 150g",cs:"Krůtí plátky 150g",kcal:180,p:36,c:2,f:3,price:{czk:65,eur:2.7},meals:["snack"]}]}
+];
+const PLACE_ICON={restaurant:"fork",cafe:"store",grocery:"store",fast:"f_fast"};
+function itemFit(it){return matchPct(scorePayload(it,{junk:it.veg?0.02:0}));}
+function bestItemOfPlace(pl,mealType){let items=pl.items.slice();if(mealType)items=items.filter(i=>!i.meals||i.meals.includes(mealType));if(!items.length)items=pl.items;
+ return items.map(i=>({it:i,pct:itemFit(i)})).sort((a,b)=>b.pct-a.pct)[0];}
+function partnerBadge(p){if(!p)return "";if(p==="wolt")return `<span class="dbadge d-wolt">${ic("bike",{size:11})}Wolt</span>`;return `<span class="dbadge d-foodora">${ic("bike",{size:11})}foodora</span>`;}
+
+/* =========================================================================
+   Insights engine
+   ========================================================================= */
+function hourNow(){return new Date().getHours();}
+function insights(){
+ const rem=remaining(),out=[],h=hourNow(),st=computeStreak();
+ const eatenPct=rem.tot.kcal/S.targets.calories;
+ if(rem.f<0)out.push({ic:"leaf",title:L("Fat's over target","Tuk je nad cílem"),text:L("Steer lighter from here — lean proteins and veg keep the rest of your day on route.","Odteď zlehka — libové bílkoviny a zelenina udrží zbytek dne na trase.")});
+ if(rem.kcal>0&&rem.kcal<400&&rem.p>25)out.push({ic:"dumbbell",title:L("Low on calories, short on protein","Málo kalorií, málo bílkovin"),text:L("Go lean and dense: egg whites, white fish, skyr or a shake close the protein gap without the calories.","Zvol libové a husté: bílky, bílá ryba, skyr nebo shake doplní bílkoviny bez kalorií."),cta:{label:L("See picks","Zobrazit tipy"),act:()=>go("home")}});
+ if(eatenPct>0.75&&h<20&&rem.p>20)out.push({ic:"clock",title:L("Big day already","Náročný den"),text:L("You've eaten most of your calories to hit macros — keep dinner light and protein-forward to stay on route.","Snědl jsi většinu kalorií kvůli makrům — nech večeři lehkou a bohatou na bílkoviny.")});
+ if(rem.kcal>0&&rem.kcal<300)out.push({ic:"bulb",title:L("Snack-sized room left","Zbývá na svačinu"),text:L("About "+Math.round(rem.kcal)+" kcal to play with — a piece of fruit + a small handful of nuts, or Greek yogurt, fits nicely.","Zbývá ~"+Math.round(rem.kcal)+" kcal — kousek ovoce a hrst ořechů nebo řecký jogurt sednou dobře.")});
+ if(st>=3)out.push({ic:"flame",title:L(st+"-day streak","Série "+st+" dní"),text:L("Nice steering. Consistency is doing the heavy lifting — keep the route.","Skvělé řízení. Vede tě pravidelnost — drž trasu.")});
+ if(has("sweettooth"))out.push({ic:"crave",title:L("Craving something sweet?","Chuť na sladké?"),text:L("Crave Mode maps candy, chocolate and ice cream to swaps that actually fit your macros today.","Chuťový režim namapuje sladkosti na varianty, které dnes sednou do tvých maker."),cta:{label:L("Open Crave Mode","Otevřít Chuťový režim"),act:()=>go("crave")}});
+ if(!out.length)out.push({ic:"compass",title:L("You're on route","Jsi na trase"),text:L("Macros are balanced. When you're ready to eat, hit ‘What to eat next’ for the best-fitting options.","Makra jsou vyvážená. Až budeš chtít jíst, mrkni na ‚Co si dát dál‘.")});
+ return out;
+}
+
+/* =========================================================================
+   DOM helpers + render: HOME
+   ========================================================================= */
+const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(s));
+function ring(color,pct,num,unit,over){const R=33,C=2*Math.PI*R,off=C*(1-Math.max(0,Math.min(1,pct)));
+ return `<div class="ring"><svg width="80" height="80" viewBox="0 0 80 80">
+  <circle cx="40" cy="40" r="${R}" stroke="var(--border)" stroke-width="7" fill="none"/>
+  <circle cx="40" cy="40" r="${R}" stroke="${color}" stroke-width="7" fill="none" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${off}"/>
+ </svg><div class="val"><div class="num" style="${over?'color:'+color:''}">${num}</div><div class="unit">${unit}</div></div></div>`;}
+function renderHome(){
+ const rem=remaining(),over=rem.kcal<0;
+ $("#heroTop").innerHTML=ic("flame",{size:16,color:"var(--fat)"})+" "+L("You are here","Jsi tady");
+ $("#calLeft").textContent=Math.abs(Math.round(rem.kcal));
+ $("#calLeft").classList.toggle("over",over);
+ $("#calLeftLbl").textContent=over?L("kcal over","kcal navíc"):L("kcal left","kcal zbývá");
+ $("#calTarget").textContent=S.targets.calories;
+ $("#calBar").style.width=Math.min(100,rem.tot.kcal/S.targets.calories*100)+"%";
+ const rb=$("#routeBadge");
+ if(over){rb.innerHTML=ic("compass",{size:13})+L("Off route — fresh route tomorrow","Mimo trasu — zítra nová");rb.style.color="var(--fat)";rb.style.background="rgba(255,209,102,.16)";}
+ else{rb.innerHTML=ic("compass",{size:13})+L("On route today","Na trase");rb.style.color="var(--green)";rb.style.background="rgba(67,233,123,.16)";}
+ const macs=[["protein",MC.P,rem.p,S.targets.protein,rem.tot.p,"dumbbell",L("Protein","Bílkoviny")],
+   ["carbs",MC.C,rem.c,S.targets.carbs,rem.tot.c,"f_grain",L("Carbs","Sacharidy")],
+   ["fat",MC.F,rem.f,S.targets.fat,rem.tot.f,"f_oil",L("Fat","Tuky")]];
+ $("#macroCircles").innerHTML=macs.map(m=>{const ov=m[2]<0;return `<div class="macro">${ring(m[1],m[4]/m[3],Math.abs(Math.round(m[2])),"g",ov)}
+   <div class="lbl">${ic(m[5],{size:13,color:m[1]})}${m[6]}</div><div class="left">${ov?L("over","navíc"):L("left","zbývá")}</div></div>`;}).join("");
+ $("#addFoodBtn").innerHTML=ic("plus",{size:18})+L("Add food","Přidat jídlo");
+ renderTodayWidget();
+ renderInsightHome();
+ renderSuggestBar();
+ renderRecs();
+ renderNearbyPreview();
+}
+function renderTodayWidget(){
+ const log=todayLog(),tot=totalsFor(log),open=S._todayOpen;
+ const pcts=[["p",MC.P,tot.p,S.targets.protein],["c",MC.C,tot.c,S.targets.carbs],["f",MC.F,tot.f,S.targets.fat]];
+ let body;
+ if(!log.length)body=`<div class="empty"><div class="em-ic">${pinLogo(40)}</div>${L("Nothing logged yet. You are here — let's map your day.","Zatím nic. Jsi tady — pojďme naplánovat den.")}</div>`;
+ else body=log.map((e,i)=>`<div class="row">${foodTileFromLog(e)}
+   <div class="info"><div class="nm">${LANG==="cs"?(e.name_cs||e.name_en):e.name_en} · ${e.amount}g</div>
+   <div class="mm">${ic("dumbbell",{size:11,color:MC.P})} ${Math.round(e.p)} · ${ic("f_grain",{size:11,color:MC.C})} ${Math.round(e.c)} · ${ic("f_oil",{size:11,color:MC.F})} ${Math.round(e.f)} · ${mealName(e.meal)}</div></div>
+   <div class="kc">${Math.round(e.kcal)}</div><div class="del" data-del="${i}">${ic("trash",{size:16})}</div></div>`).join("")
+   +`<button class="link" id="clearDay" style="margin-top:12px">${ic("trash",{size:13})}${L("Reset day","Vynulovat den")}</button>`;
+ $("#todayWidget").innerHTML=`<div class="widget ${open?'open':''}" id="twGadget">
+   <div class="widget-head" id="twHead"><span class="whic">${ic("fork",{size:20})}</span>
+     <div class="wtitle"><b>${L("Today","Dnes")}</b><span>${Math.round(tot.kcal)} / ${S.targets.calories} kcal · ${log.length} ${L(log.length===1?"item":"items",log.length===1?"položka":"položek")}</span></div>
+     <span class="chev">${ic("chevD",{size:20})}</span></div>
+   <div class="wsummary">${pcts.map(p=>`<div class="minibar"><div style="width:${Math.min(100,p[2]/p[3]*100)}%;background:${p[1]}"></div></div>`).join("")}</div>
+   <div style="height:6px"></div>
+   <div class="widget-body">${body}</div></div>`;
+ $("#twHead").onclick=()=>{S._todayOpen=!S._todayOpen;renderTodayWidget();};
+ $$("#todayWidget .del").forEach(d=>d.onclick=e=>{e.stopPropagation();todayLog().splice(+d.dataset.del,1);save();renderHome();});
+ const cd=$("#clearDay");if(cd)cd.onclick=e=>{e.stopPropagation();if(confirm(L("Reset today's log?","Vynulovat dnešek?"))){S.logs[todayKey()]=[];save();renderHome();}};
+}
+function foodTileFromLog(e){const f=FMAP[e.id];if(f)return foodTile(f,40);const col="var(--muted)";return `<span class="ftile" style="width:40px;height:40px;background:color-mix(in srgb,${col} 14%,transparent);color:${col}">${ic("fork",{size:22})}</span>`;}
+function mealName(m){return {breakfast:L("Breakfast","Snídaně"),brunch:L("Brunch","Brunch"),lunch:L("Lunch","Oběd"),dinner:L("Dinner","Večeře"),snack:L("Snack","Svačina")}[m]||m;}
+function renderInsightHome(){const ins=insights()[0];
+ $("#insightHome").innerHTML=`<div class="insight"><span class="ib">${ic(ins.ic,{size:20})}</span>
+   <div class="it"><b>${ins.title}</b><p>${ins.text}</p>${ins.cta?`<button class="link icta" id="insCta">${ins.cta.label} ${ic("arrow",{size:13})}</button>`:''}</div></div>`;
+ if(ins.cta){$("#insCta").onclick=ins.cta.act;}
+}
+function renderSuggestBar(){
+ $("#suggestBar").innerHTML=`<button class="btn btn-dark" id="suggestBtn" style="margin-bottom:14px">${ic("sparkle",{size:16,color:"var(--fat)"})}${L("Suggest me a meal","Navrhni mi jídlo")}</button>`;
+ $("#suggestBtn").onclick=openSuggest;
+}
+function thresholdReached(){if(S.recThreshold===0)return true;return (remaining().tot.kcal/S.targets.calories)*100>=S.recThreshold;}
+function renderRecs(){
+ const box=$("#recSection");
+ box.innerHTML=`<div class="sec-title"><h3>${ic("compass",{size:17,color:"var(--green)"})}${L("What to eat next","Co si dát dál")}</h3>${S.premium?'<span class="chip sel" style="font-size:11px;padding:4px 9px">'+ic("sparkle",{size:11})+'Premium</span>':''}</div><div id="recInner"></div>`;
+ const inner=$("#recInner");
+ if(!thresholdReached()){const need=Math.ceil((S.recThreshold/100)*S.targets.calories-remaining().tot.kcal);
+   inner.innerHTML=`<div class="card" style="text-align:center;color:var(--muted);font-size:13px;font-weight:600">${ic("lock",{size:18,style:"margin-bottom:6px"})}<br>${L("Recommendations unlock at "+S.recThreshold+"% of calories. ~"+need+" kcal to go.","Doporučení se odemknou po "+S.recThreshold+" % kalorií. Ještě ~"+need+" kcal.")}</div>`;return;}
+ const scored=FOODS.filter(dietOk).map(scoreFood).sort((a,b)=>b.raw-a.raw);
+ const groups={P:[],C:[],F:[]};scored.forEach(s=>groups[s.food.pm].push(s));
+ const meta={P:["dumbbell",MC.P,L("Protein","Bílkoviny")],C:["f_grain",MC.C,L("Carbs","Sacharidy")],F:["f_oil",MC.F,L("Fat","Tuky")]};
+ let html="";
+ if(S.premium){html+=`<div class="reccat"><h4>${ic("star",{size:14,color:"var(--fat)",fill:true})}${L("Top picks right now","Nejlepší volby teď")}</h4>`;
+   scored.slice(0,3).forEach((s,i)=>{const pct=matchPct(s.raw);html+=recCard(s.food,pct,s.m,["#1","#2","#3"][i]);});
+   html+=`</div>`;}
+ const limit=S.premium?6:2;
+ ["P","C","F"].forEach(k=>{const list=groups[k].slice(0,limit);
+   html+=`<div class="reccat"><h4><span class="dot" style="background:${meta[k][1]}"></span>${ic(meta[k][0],{size:14,color:meta[k][1]})}${meta[k][2]}</h4>`;
+   list.forEach(s=>{const pct=matchPct(s.raw);html+=recCard(s.food,pct,s.m);});
+   if(!S.premium){const more=groups[k].length-limit;html+=`<div class="locked" style="padding:12px;margin-top:2px"><div style="font-weight:700;font-size:13px">${ic("lock",{size:15})} ${L("Unlock "+more+" more ideas","Odemkni "+more+" dalších")}</div><button class="link" style="color:var(--green);margin-top:6px" data-goprem>${L("Start Premium","Aktivovat Premium")} ${ic("arrow",{size:13})}</button></div>`;}
+   html+=`</div>`;});
+ inner.innerHTML=html;
+ $$("#recInner .reccard").forEach(c=>c.onclick=()=>openAmount(FMAP[c.dataset.food]));
+ $$("#recInner [data-goprem]").forEach(b=>b.onclick=()=>go("profile"));
+}
+function recCard(f,pct,m,rank){return `<div class="reccard" data-food="${f.id}">${gradeBadge(pct)}${foodTile(f,36)}
+  <div class="info"><div class="nm">${rank?'<span class="muted" style="font-weight:800">'+rank+'</span> ':''}${fname(f)}${f.srv?' · '+f.srv+'g':''}</div><div class="why">${whyLines(m)}</div></div>
+  <div style="text-align:right"><div style="font-weight:800;color:var(--green)">${pct}%</div></div></div>`;}
+function renderNearbyPreview(){
+ const ranked=PLACES.map(pl=>({pl,best:bestItemOfPlace(pl)})).sort((a,b)=>b.best.pct-a.best.pct).slice(0,2);
+ $("#nearbyPreview").innerHTML=`<div class="sec-title"><h3>${ic("pin",{size:17,color:"var(--protein)"})}${L("Eat well nearby","Dobře najíst poblíž")}</h3><button class="link" id="toRadar">${L("Open Radar","Otevřít Radar")} ${ic("arrow",{size:13})}</button></div>`
+  +ranked.map(r=>placeRow(r.pl,r.best)).join("");
+ $("#toRadar").onclick=()=>go("radar");
+ $$("#nearbyPreview .place").forEach(p=>p.onclick=()=>openPlace(p.dataset.place));
+}
+function placeRow(pl,best){const locked=pl.premium&&!S.premium;
+ return `<div class="place" data-place="${pl.id}">
+   <span class="ptile">${ic(PLACE_ICON[pl.type]||"store",{size:22})}</span>
+   <div class="info"><div class="nm">${LANG==="cs"?pl.cs:pl.en} ${locked?ic("lock",{size:13,color:"var(--fat)"}):""}</div>
+     <div class="meta"><span>${ic("pin",{size:11})}${pl.dist} m</span><span>${LANG==="cs"?(best.it.cs):best.it.en}</span>${partnerBadge(pl.partner)}<span>${price(best.it.price)}</span></div></div>
+   ${locked?ic("lock",{size:18,color:"var(--muted)"}):gradeBadge(best.pct)}</div>`;}
+
+/* =========================================================================
+   Suggest a meal (by time) + delivery upsell
+   ========================================================================= */
+function openSuggest(){
+ const meals=["breakfast","brunch","lunch","snack","dinner"];
+ const guess=guessMeal();
+ openSheet("amt",`<div class="amtwrap"><div class="abig" style="background:var(--mint);color:var(--navy)">${ic("sparkle",{size:26})}</div>
+   <h3>${L("Suggest me a meal","Navrhni mi jídlo")}</h3>
+   <p class="muted" style="font-weight:600;font-size:13px">${L("Built around the macros you have left.","Postaveno na tom, co ti zbývá.")}</p>
+   <div class="mealsel" id="sgMeals">${meals.map(m=>`<button class="chip ${m===guess?'sel':''}" data-m="${m}">${mealName(m)}</button>`).join("")}</div>
+   <div id="sgOut"></div></div>`);
+ $$("#sgMeals .chip").forEach(b=>b.onclick=()=>{$$("#sgMeals .chip").forEach(x=>x.classList.toggle("sel",x===b));renderSuggest(b.dataset.m);});
+ renderSuggest(guess);
+}
+function renderSuggest(mealType){
+ const rem=remaining();
+ // free home-cooked combo
+ const prot=FOODS.filter(f=>f.pm==="P"&&dietOk(f)).map(scoreFood).sort((a,b)=>b.raw-a.raw)[0].food;
+ const carb=FOODS.filter(f=>f.pm==="C"&&f.kcal<200&&dietOk(f)).map(scoreFood).sort((a,b)=>b.raw-a.raw)[0].food;
+ const veg=FMAP["broccoli"];
+ const combo=[{f:prot,g:prot.srv},{f:carb,g:carb.srv},{f:veg,g:150}];
+ const ct=combo.reduce((a,x)=>{const m=servingMacros(x.f,x.g);return{kcal:a.kcal+m.kcal,p:a.p+m.p,c:a.c+m.c,f:a.f+m.f};},{kcal:0,p:0,c:0,f:0});
+ const cpct=matchPct(scorePayload(ct));
+ // delivery options that fit + meal
+ const deliv=PLACES.filter(pl=>pl.partner).map(pl=>({pl,best:bestItemOfPlace(pl,mealType)})).sort((a,b)=>b.best.pct-a.best.pct).slice(0,3);
+ let html=`<div class="altcard"><div class="ahead">${gradeBadge(cpct)}<div style="flex:1"><div style="font-weight:800;font-size:14px">${L("Cook at home","Uvař doma")}</div><div class="muted" style="font-size:12px;font-weight:600">${combo.map(x=>fname(x.f)).join(" + ")}</div></div><div style="text-align:right;font-weight:800;color:var(--green)">${cpct}%</div></div>
+   <div class="amtmac" style="justify-content:flex-start;gap:16px">
+     <span><b>${Math.round(ct.kcal)}</b><small>kcal</small></span><span style="color:${MC.P}"><b>${Math.round(ct.p)}g</b><small>P</small></span><span style="color:${MC.C}"><b>${Math.round(ct.c)}g</b><small>C</small></span><span style="color:${MC.F}"><b>${Math.round(ct.f)}g</b><small>F</small></span></div>
+   <div class="why" style="color:var(--muted);font-size:12px;font-weight:600">${L("Why: closes your protein gap first, fits remaining carbs, keeps fat in budget.","Proč: nejdřív doplní bílkoviny, sedne na sacharidy a drží tuk v rozpočtu.")}</div>
+   <button class="btn btn-primary btn-sm" id="logCombo" style="width:100%;margin-top:10px">${ic("plus",{size:15})}${L("Log this meal","Zapsat jídlo")}</button></div>`;
+ html+=`<div class="sec-title" style="margin:14px 2px 8px"><h3 style="font-size:14px">${ic("bike",{size:15,color:"var(--protein)"})}${L("Order something that fits","Objednej, co sedne")}</h3></div>`;
+ deliv.forEach(d=>{const locked=d.pl.premium&&!S.premium;
+   html+=`<div class="altcard"><div class="ahead">${locked?'<span class="grade g-C sm">?</span>':gradeBadge(d.best.pct)}
+     <div style="flex:1"><div style="font-weight:800;font-size:14px">${LANG==="cs"?d.best.it.cs:d.best.it.en} ${locked?ic("lock",{size:12,color:"var(--fat)"}):""}</div>
+     <div class="muted" style="font-size:12px;font-weight:600">${LANG==="cs"?d.pl.cs:d.pl.en} · ${d.pl.dist}m · ${price(d.best.it.price)}</div></div>
+     ${partnerBadge(d.pl.partner)}</div>
+     ${locked?`<div class="why">${ic("lock",{size:12})} ${L("Premium partner deal — unlock ranked delivery picks.","Prémiová nabídka partnera — odemkni řazené doručení.")}</div><button class="btn btn-dark btn-sm" style="width:100%;margin-top:8px" data-goprem>${L("Unlock with Premium","Odemknout s Premium")}</button>`
+     :`<div class="why">${L("Fills","Doplní")} ~${Math.round(Math.min(d.best.it.p,Math.max(0,rem.p)))}g ${L("of your remaining protein","zbývajících bílkovin")}. ${L("You'd be","Byl bys")} ${Math.min(100,Math.round((rem.tot.p+d.best.it.p)/S.targets.protein*100))}% ${L("to protein target.","k cíli bílkovin.")}</div>
+       <button class="btn btn-primary btn-sm" style="width:100%;margin-top:8px" data-order="${d.pl.partner}">${ic("bike",{size:14})}${L("Order on","Objednat na")} ${d.pl.partner==="wolt"?"Wolt":"foodora"}</button>`}</div>`;});
+ $("#sgOut").innerHTML=html;
+ $("#logCombo").onclick=()=>{combo.forEach(x=>logFood(x.f,x.g,mealType,true));save();closeSheets();renderHome();toast(L("Meal logged","Jídlo zapsáno"),"check");};
+ $$("#sgOut [data-goprem]").forEach(b=>b.onclick=()=>{closeSheets();go("profile");});
+ $$("#sgOut [data-order]").forEach(b=>b.onclick=()=>toast(L("Opening "+(b.dataset.order==="wolt"?"Wolt":"foodora")+"… (demo)","Otevírám "+(b.dataset.order==="wolt"?"Wolt":"foodora")+"… (demo)"),"bike"));
+}
+
+/* =========================================================================
+   Log + amount sheet + meal builder
+   ========================================================================= */
+let mealTray=[]; /* array of {f,g} */
+function logFood(f,g,meal,silent){const m=servingMacros(f,g);
+ todayLog().push({id:f.id,name_en:f.en,name_cs:f.cs,cat:f.cat,amount:g,meal:meal||"snack",kcal:m.kcal,p:m.p,c:m.c,f:m.f});
+ if(f.id&&!f.custom)S.recent=[f.id,...S.recent.filter(r=>r!==f.id)].slice(0,12);save();}
+let curFood=null,curAmt=100,curMeal="snack";
+function guessMeal(){const h=hourNow();return h<11?"breakfast":h<15?"lunch":h<21?"dinner":"snack";}
+function openAmount(f){curFood=f;curAmt=f.srv||100;curMeal=guessMeal();drawAmount();openSheet("amt");}
+function drawAmount(){const f=curFood,m=servingMacros(f,curAmt),pct=matchPct(scorePayload(m)),meals=["breakfast","lunch","dinner","snack"];
+ $("#amtBody").innerHTML=`<div class="amtwrap">
+   <div class="abig" style="background:color-mix(in srgb,${CAT_TINT[f.cat]||'var(--muted)'} 14%,transparent);color:${CAT_TINT[f.cat]||'var(--muted)'}">${ic(CAT_ICON[f.cat]||"fork",{size:30})}</div>
+   <h3>${fname(f)}</h3><div class="muted" style="font-size:12px;font-weight:600">${f.kcal} kcal · P${f.p} C${f.c} F${f.f} / 100g</div>
+   <div class="amtctrl"><button data-a="-10">${ic("minus",{size:20})}</button><input type="number" id="amtInput" value="${curAmt}"><span class="muted" style="font-weight:800">g</span><button data-a="10">${ic("plus",{size:20})}</button></div>
+   <div class="amtmac"><span><b>${Math.round(m.kcal)}</b><small>kcal</small></span><span style="color:${MC.P}"><b>${Math.round(m.p)}g</b><small>P</small></span><span style="color:${MC.C}"><b>${Math.round(m.c)}g</b><small>C</small></span><span style="color:${MC.F}"><b>${Math.round(m.f)}g</b><small>F</small></span></div>
+   <div class="ratebox">${gradeBadge(pct)}<div><div style="font-weight:800;font-size:13px">${ratingText(pct)}</div><div class="muted" style="font-size:11px;font-weight:600">${L("Fit score","Skóre")} ${pct}%</div></div></div>
+   <div class="mealsel">${meals.map(x=>`<button class="chip ${x===curMeal?'sel':''}" data-meal="${x}">${mealName(x)}</button>`).join("")}</div>
+   <button class="btn btn-primary" id="doLog">${ic("plus",{size:16})}${L("Add to log","Přidat do záznamu")}</button></div>`;
+ $$('#amtBody [data-a]').forEach(b=>b.onclick=()=>{curAmt=Math.max(5,curAmt+ +b.dataset.a);drawAmount();});
+ $("#amtInput").oninput=e=>{curAmt=Math.max(0,+e.target.value||0);const m2=servingMacros(f,curAmt);const w=$("#amtBody .amtmac");if(w)w.innerHTML=`<span><b>${Math.round(m2.kcal)}</b><small>kcal</small></span><span style="color:${MC.P}"><b>${Math.round(m2.p)}g</b><small>P</small></span><span style="color:${MC.C}"><b>${Math.round(m2.c)}g</b><small>C</small></span><span style="color:${MC.F}"><b>${Math.round(m2.f)}g</b><small>F</small></span>`;};
+ $$('#amtBody [data-meal]').forEach(b=>b.onclick=()=>{curMeal=b.dataset.meal;drawAmount();});
+ $("#doLog").onclick=()=>{logFood(f,curAmt,curMeal);closeSheets();renderHome();toast(L("Added","Přidáno"),"check");};
+}
+/* --- food search sheet --- */
+let curTab="all",curCat="all";
+const FOOD_TABS=()=>[["all",L("All","Vše")],["type",L("By type","Podle typu")],["fav",L("Favorites","Oblíbené")],["recent",L("Recent","Nedávné")],["best",L("Best fit","Nejlepší")],["custom",L("Custom","Vlastní")]];
+const CATS=[["meat",L("Meat","Maso")],["fish",L("Fish","Ryby")],["egg",L("Eggs","Vejce")],["dairy",L("Dairy","Mléčné")],["bean",L("Legumes","Luštěniny")],["grain",L("Grains","Obiloviny")],["bread",L("Bread","Pečivo")],["veg",L("Veg","Zelenina")],["fruit",L("Fruit","Ovoce")],["nut",L("Nuts","Ořechy")],["cheese",L("Cheese","Sýry")],["sweet",L("Sweets","Sladké")],["fast",L("Fast food","Fast food")]];
+function openFood(){curTab="all";curCat="all";mealTray=[];$("#foodSearch").value="";$("#searchIc").innerHTML=ic("search",{size:18,color:"var(--muted)"});renderTabs();renderFoodList();renderTray();openSheet("food");setTimeout(()=>$("#foodSearch").focus(),250);}
+function renderTabs(){$("#foodTabs").innerHTML=FOOD_TABS().map(t=>`<button class="chip ${t[0]===curTab?'sel':''}" data-tab="${t[0]}">${t[1]}</button>`).join("");
+ $$("#foodTabs .chip").forEach(c=>c.onclick=()=>{curTab=c.dataset.tab;renderTabs();renderFoodList();});}
+function toggleFav(id){if(S.favorites.includes(id))S.favorites=S.favorites.filter(x=>x!==id);
+ else{if(!S.premium&&S.favorites.length>=10){openSheet("amt",`<div class="amtwrap"><div class="abig" style="background:var(--mint);color:var(--navy)">${ic("star",{size:26})}</div><h3>${L("You've saved 10 favorites","Máš 10 oblíbených")}</h3><p class="muted" style="font-weight:600">${L("Upgrade to save unlimited meals and foods.","Upgraduj pro neomezené ukládání.")}</p><button class="btn btn-primary" style="margin-top:12px" onclick="closeSheets();go('profile')">${L("Start Premium","Aktivovat Premium")}</button></div>`);return;}S.favorites.push(id);}save();renderFoodList();}
+function inTray(id){return mealTray.some(x=>x.f.id===id);}
+function renderFoodList(){
+ const q=$("#foodSearch").value.trim().toLowerCase();const mA=q.match(/(\d+)\s*g?$/);const qN=q.replace(/(\d+)\s*g?$/,"").trim();const amtHint=mA?+mA[1]:null;
+ let list;
+ if(curTab==="custom"){renderCustom();return;}
+ if(curTab==="fav")list=FOODS.filter(f=>S.favorites.includes(f.id));
+ else if(curTab==="recent")list=S.recent.map(id=>FMAP[id]).filter(Boolean);
+ else if(curTab==="best")list=FOODS.filter(dietOk).map(scoreFood).sort((a,b)=>b.raw-a.raw).map(s=>s.food);
+ else list=FOODS.slice();
+ // category filter row for "type"
+ let catRow="";
+ if(curTab==="type"){catRow=`<div class="tabs" style="margin-bottom:8px">${[["all",L("All","Vše")]].concat(CATS).map(c=>`<button class="chip ${c[0]===curCat?'sel':''}" data-cat="${c[0]}">${c[1]}</button>`).join("")}</div>`;
+   if(curCat!=="all")list=list.filter(f=>f.cat===curCat);}
+ if(qN)list=list.filter(f=>f.en.toLowerCase().includes(qN)||f.cs.toLowerCase().includes(qN));
+ const el=$("#foodResults");
+ const rows=list.slice(0,50).map(f=>{const sc=scoreFood(f),pct=matchPct(sc.raw);
+   return `<div class="foodrow" data-food="${f.id}" data-amt="${amtHint||''}">${foodTile(f,38)}
+     <div class="info"><div class="nm">${fname(f)}</div><div class="mm">${f.kcal} kcal · P${f.p} C${f.c} F${f.f} /100g</div></div>
+     ${gradeBadge(pct,true)}
+     <button class="add ${inTray(f.id)?'in':''}" data-tray="${f.id}">${ic(inTray(f.id)?"check":"plus",{size:16})}</button></div>`;}).join("");
+ el.innerHTML=catRow+(rows||`<div class="empty">${L("No matches","Nic nenalezeno")}</div>`);
+ if(curTab==="type")$$("#foodResults [data-cat]").forEach(c=>c.onclick=()=>{curCat=c.dataset.cat;renderFoodList();});
+ $$("#foodResults .foodrow").forEach(r=>r.onclick=e=>{if(e.target.closest("[data-tray]"))return;const f=FMAP[r.dataset.food];const g=r.dataset.amt?+r.dataset.amt:f.srv;curFood=f;curAmt=g;curMeal=guessMeal();drawAmount();openSheet("amt");});
+ $$("#foodResults [data-tray]").forEach(b=>b.onclick=e=>{e.stopPropagation();const id=b.dataset.tray;const f=FMAP[id];if(inTray(id))mealTray=mealTray.filter(x=>x.f.id!==id);else mealTray.push({f,g:f.srv});renderFoodList();renderTray();});
+}
+function renderCustom(){$("#foodResults").innerHTML=`<div style="padding:4px 2px">
+   <div class="field"><label>${L("Food name","Název jídla")}</label><input id="cName" placeholder="${L("Homemade soup","Domácí polévka")}"></div>
+   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+     <div class="field"><label>kcal / 100g</label><input id="cK" type="number" inputmode="numeric"></div>
+     <div class="field"><label>P / 100g</label><input id="cP" type="number" inputmode="numeric"></div>
+     <div class="field"><label>C / 100g</label><input id="cC" type="number" inputmode="numeric"></div>
+     <div class="field"><label>F / 100g</label><input id="cF" type="number" inputmode="numeric"></div></div>
+   <button class="btn btn-primary" id="cSave">${L("Save & add","Uložit a přidat")}</button></div>`;
+ $("#cSave").onclick=()=>{const f={id:"custom_"+Date.now(),custom:true,en:$("#cName").value||"Custom food",cs:$("#cName").value||"Vlastní jídlo",cat:"fork",kcal:+$("#cK").value||0,p:+$("#cP").value||0,c:+$("#cC").value||0,f:+$("#cF").value||0,pm:"P",srv:100};curFood=f;curAmt=100;curMeal=guessMeal();drawAmount();openSheet("amt");};}
+function renderTray(){
+ const el=$("#mealTray");if(!mealTray.length){el.innerHTML="";return;}
+ const tot=mealTray.reduce((a,x)=>{const m=servingMacros(x.f,x.g);return{kcal:a.kcal+m.kcal,p:a.p+m.p,c:a.c+m.c,f:a.f+m.f};},{kcal:0,p:0,c:0,f:0});
+ const pct=matchPct(scorePayload(tot));
+ el.innerHTML=`<div class="tray"><div class="traytop"><div style="display:flex;align-items:center;gap:8px">${gradeBadge(pct,true)}<b style="font-size:14px">${L("Meal","Meal")} · ${Math.round(tot.kcal)} kcal</b></div>
+   <div class="muted" style="font-size:11px;font-weight:700">P${Math.round(tot.p)} C${Math.round(tot.c)} F${Math.round(tot.f)} · ${pct}%</div></div>
+   <div class="traychips">${mealTray.map(x=>`<span class="traychip">${fname(x.f)} ${x.g}g<span class="x" data-rm="${x.f.id}">${ic("close",{size:12})}</span></span>`).join("")}</div>
+   <button class="btn btn-primary" id="logMeal" style="margin-top:8px">${ic("plus",{size:16})}${L("Log meal","Zapsat meal")} (${mealTray.length})</button></div>`;
+ $$("#mealTray [data-rm]").forEach(b=>b.onclick=()=>{mealTray=mealTray.filter(x=>x.f.id!==b.dataset.rm);renderFoodList();renderTray();});
+ $("#logMeal").onclick=()=>{const meal=guessMeal();mealTray.forEach(x=>logFood(x.f,x.g,meal,true));mealTray=[];closeSheets();renderHome();toast(L("Meal logged","Meal zapsán"),"check");};
+}
+
+/* =========================================================================
+   RADAR
+   ========================================================================= */
+let radarFilter="all";
+function renderRadar(){
+ $("#radarFilterBtn").innerHTML=ic("filter",{size:16})+L("Filter","Filtr");
+ $("#nearbyTitle").textContent=L("Nearby, ranked for your macros","Poblíž, seřazeno podle mak. cílů");
+ let places=PLACES.slice();
+ if(radarFilter==="delivery")places=places.filter(p=>p.partner);
+ else if(radarFilter==="grocery")places=places.filter(p=>p.type==="grocery");
+ else if(radarFilter==="fit")places=places.filter(p=>bestItemOfPlace(p).pct>=70);
+ const ranked=places.map(pl=>({pl,best:bestItemOfPlace(pl)})).sort((a,b)=>b.best.pct-a.best.pct);
+ // radar svg
+ const cx=160,cy=160,maxD=1000;const rings=[250,500,750,1000];
+ let dots="";
+ ranked.forEach(r=>{const rad=Math.min(1,r.pl.dist/maxD)*140+14;const a=r.pl.ang*Math.PI/180;const x=cx+rad*Math.cos(a),y=cy+rad*Math.sin(a);
+   const g=grade(r.best.pct);const col=`var(--g${g})`;const locked=r.pl.premium&&!S.premium;
+   dots+=`<g class="rdot" data-place="${r.pl.id}"><circle class="hit" cx="${x}" cy="${y}" r="7" fill="${col}" stroke="var(--card)" stroke-width="2"/>
+     <text x="${x}" y="${y+3.5}" text-anchor="middle" font-size="8" font-weight="800" fill="#08111f">${locked?'★':g}</text></g>`;});
+ $("#radarSvg").innerHTML=`<svg viewBox="0 0 320 320">
+   ${rings.map(rr=>{const rad=Math.min(1,rr/maxD)*140+14;return `<circle cx="${cx}" cy="${cy}" r="${rad}" fill="none" stroke="var(--border)" stroke-width="1"/><text x="${cx+rad-2}" y="${cy-4}" font-size="8" fill="var(--muted)" text-anchor="end">${rr}m</text>`;}).join("")}
+   <line x1="${cx}" y1="20" x2="${cx}" y2="300" stroke="var(--border)" stroke-width="1"/><line x1="20" y1="${cy}" x2="300" y2="${cy}" stroke="var(--border)" stroke-width="1"/>
+   ${dots}
+   <circle cx="${cx}" cy="${cy}" r="9" fill="var(--green)"/><circle cx="${cx}" cy="${cy}" r="16" fill="none" stroke="var(--green)" stroke-width="1.5" opacity=".5"><animate attributeName="r" from="9" to="150" dur="3s" repeatCount="indefinite"/><animate attributeName="opacity" from=".5" to="0" dur="3s" repeatCount="indefinite"/></circle>
+   <text x="${cx}" y="${cy+3}" text-anchor="middle" font-size="9" font-weight="800" fill="#08111f">${L("YOU","TY")}</text>
+ </svg>`;
+ $("#radarLegend").innerHTML=`<span>${ic("loc",{size:12,color:"var(--green)"})}${S.city}</span><span><span class="grade g-A sm" style="width:16px;height:16px;font-size:10px">A</span>${L("great fit","skvěle sedí")}</span><span><span class="grade g-D sm" style="width:16px;height:16px;font-size:10px">D</span>${L("weak fit","slabě sedí")}</span><span>${ic("star",{size:12,color:"var(--fat)"})}${L("Premium spot","Prémiové místo")}</span>`;
+ $$("#radarSvg .rdot").forEach(d=>d.onclick=()=>openPlace(d.dataset.place));
+ // insight
+ const top=ranked[0];
+ $("#radarInsight").innerHTML=`<div class="insight"><span class="ib">${ic("bulb",{size:20})}</span><div class="it"><b>${L("Best move near you","Nejlepší tah poblíž")}</b><p>${L((LANG==="cs"?top.pl.cs:top.pl.en)+" is "+top.pl.dist+"m away and its "+(LANG==="cs"?top.best.it.cs:top.best.it.en)+" grades "+grade(top.best.pct)+" for what you have left today.",(LANG==="cs"?top.pl.cs:top.pl.en)+" je "+top.pl.dist+"m daleko a "+(LANG==="cs"?top.best.it.cs:top.best.it.en)+" má známku "+grade(top.best.pct)+" pro dnešek.")}</p></div></div>`;
+ $("#placeList").innerHTML=ranked.map(r=>placeRow(r.pl,r.best)).join("");
+ $$("#placeList .place").forEach(p=>p.onclick=()=>openPlace(p.dataset.place));
+ $("#radarFilterBtn").onclick=openRadarFilter;
+}
+function openRadarFilter(){const opts=[["all",L("All places","Vše")],["fit",L("Great fit only (A/B)","Jen skvěle sedící")],["delivery",L("Delivery available","S doručením")],["grocery",L("Grocery only","Jen obchody")]];
+ openSheet("amt",`<div class="amtwrap"><h3>${L("Filter radar","Filtrovat radar")}</h3><div class="optcol" style="margin-top:12px">${opts.map(o=>`<div class="opt ${radarFilter===o[0]?'sel':''}" data-rf="${o[0]}">${o[1]}</div>`).join("")}</div></div>`);
+ $$("#amtBody [data-rf]").forEach(o=>o.onclick=()=>{radarFilter=o.dataset.rf;closeSheets();renderRadar();});}
+function openPlace(id){const pl=PLACES.find(p=>p.id===id);const rem=remaining();const locked=pl.premium&&!S.premium;
+ let items=pl.items.map(it=>({it,pct:itemFit(it)})).sort((a,b)=>b.pct-a.pct);
+ let body=`<div class="amtwrap" style="text-align:left"><div style="display:flex;align-items:center;gap:12px;margin-bottom:6px"><span class="ptile" style="width:48px;height:48px;background:var(--mint);color:var(--navy)">${ic(PLACE_ICON[pl.type]||"store",{size:24})}</span>
+   <div><h3 style="margin:0">${LANG==="cs"?pl.cs:pl.en}</h3><div class="muted" style="font-size:12px;font-weight:600">${ic("pin",{size:11})} ${pl.dist}m · ${partnerBadge(pl.partner)||L("In-store","Na místě")}</div></div></div>`;
+ if(locked)body+=`<div class="locked" style="margin:12px 0"><div class="lk">${ic("star",{size:22,fill:true})}</div><h4>${L("Premium partner","Prémiový partner")}</h4><p>${L("Unlock ranked menu picks and partner deals at premium spots.","Odemkni řazené položky a nabídky u prémiových míst.")}</p><button class="btn btn-primary" onclick="closeSheets();go('profile')">${L("Start Premium","Aktivovat Premium")}</button></div>`;
+ else{body+=items.map(x=>{const it=x.it;const fillP=Math.min(it.p,Math.max(0,rem.p));const toTarget=Math.min(100,Math.round((rem.tot.p+it.p)/S.targets.protein*100));
+   return `<div class="altcard"><div class="ahead">${gradeBadge(x.pct)}<div style="flex:1"><div style="font-weight:800;font-size:14px">${LANG==="cs"?it.cs:it.en}</div><div class="muted" style="font-size:12px;font-weight:600">${it.kcal} kcal · P${it.p} C${it.c} F${it.f} · ${price(it.price)}</div></div><div style="font-weight:800;color:var(--green)">${x.pct}%</div></div>
+     <div class="why">${ic("dumbbell",{size:12,color:MC.P})} ${L("Adds ~"+Math.round(fillP)+"g protein → "+toTarget+"% to target","Přidá ~"+Math.round(fillP)+"g bílkovin → "+toTarget+"% k cíli")}. ${it.f>Math.max(0,rem.f)+4?L("Fat runs a little high for today.","Tuku je na dnešek trochu víc."):L("Fits your remaining fat.","Sedne na zbývající tuk.")}</div>
+     <div style="display:flex;gap:8px;margin-top:8px">${pl.partner?`<button class="btn btn-primary btn-sm" style="flex:1" data-order="${pl.partner}">${ic("bike",{size:14})}${pl.partner==="wolt"?"Wolt":"foodora"}</button>`:''}<button class="btn btn-ghost btn-sm" style="flex:1" data-logit='${encodeURIComponent(JSON.stringify(it))}'>${ic("plus",{size:14})}${L("Log it","Zapsat")}</button></div></div>`;}).join("");}
+ body+=`</div>`;
+ openSheet("amt",body);
+ $$("#amtBody [data-order]").forEach(b=>b.onclick=()=>toast(L("Opening "+(b.dataset.order==="wolt"?"Wolt":"foodora")+"… (demo)","Otevírám… (demo)"),"bike"));
+ $$("#amtBody [data-logit]").forEach(b=>b.onclick=()=>{const it=JSON.parse(decodeURIComponent(b.dataset.logit));todayLog().push({id:"ext_"+Date.now(),name_en:it.en,name_cs:it.cs,cat:"fork",amount:1,meal:guessMeal(),kcal:it.kcal,p:it.p,c:it.c,f:it.f});save();closeSheets();renderHome();toast(L("Added","Přidáno"),"check");});
+}
+
+/* =========================================================================
+   CRAVE MODE
+   ========================================================================= */
+const CRAVINGS=[
+ {id:"sweets",en:"Candy / Sweets",cs:"Bonbóny / Sladké",ic:"f_sweet",col:"var(--protein)",
+  alts:[{ref:"berries",g:120,add:{ref:"greekyog",g:150},why_en:"Berries + Greek yogurt hit the sweet note with real fruit sugar, plus protein to keep you full.",why_cs:"Bobule a řecký jogurt uspokojí sladkou chuť a přidají bílkoviny."},
+        {ref:"banana",g:120,add:{ref:"peanutbutter",g:15},why_en:"Banana with a little peanut butter is dessert-sweet but adds fiber and healthy fat.",why_cs:"Banán s trochou arašídového másla je sladký, ale přidá vlákninu a zdravý tuk."},
+        {ref:"darkchoc",g:20,why_en:"A square of dark chocolate satisfies the craving with far less sugar than candy.",why_cs:"Kostička hořké čokolády zažene chuť s méně cukrem."}],
+  partner:"smoothie"},
+ {id:"chocolate",en:"Chocolate",cs:"Čokoláda",ic:"f_sweet",col:"var(--fat)",
+  alts:[{ref:"darkchoc",g:20,why_en:"70%+ dark chocolate scratches the itch with more cocoa, less sugar.",why_cs:"Hořká 70%+ čokoláda zažene chuť s méně cukrem."},
+        {ref:"greekyog",g:150,add:{ref:"darkchoc",g:10},why_en:"Cocoa-stirred Greek yogurt tastes like mousse and adds 13g protein.",why_cs:"Řecký jogurt s kakaem chutná jako pěna a přidá bílkoviny."},
+        {ref:"whey",g:30,why_en:"A chocolate whey shake delivers the flavor and 24g protein for the gap.",why_cs:"Čokoládový whey shake dodá chuť i bílkoviny."}]},
+ {id:"chips",en:"Chips / Salty",cs:"Chipsy / Slané",ic:"f_fast",col:"var(--cal)",
+  alts:[{ref:"chickpea",g:100,why_en:"Roasted chickpeas give the crunch and salt with fiber and protein instead of grease.",why_cs:"Pečená cizrna dodá křupavost a sůl, k tomu vlákninu a bílkoviny."},
+        {ref:"edamame",g:100,why_en:"Salted edamame is savory, crunchy and 12g protein per handful.",why_cs:"Solené edamame je slané, křupavé a bohaté na bílkoviny."},
+        {ref:"ricecake",g:20,add:{ref:"cottage",g:80},why_en:"Rice cakes + cottage cheese = crunch + salt with almost no fat.",why_cs:"Rýžové chlebíčky s cottage sýrem = křup a sůl skoro bez tuku."}]},
+ {id:"pizza",en:"Pizza",cs:"Pizza",ic:"f_fast",col:"var(--protein)",
+  alts:[{ref:"tortilla",g:60,add:{ref:"mozzarella",g:50},why_en:"A tortilla flatbread with mozzarella + tomato is pizza-shaped but lighter and protein-first.",why_cs:"Tortilla s mozzarellou a rajčetem je jako pizza, ale lehčí."},
+        {ref:"bread",g:50,add:{ref:"chicken",g:80},why_en:"Open toast with chicken and cheese gives the savory hit with way more protein.",why_cs:"Topinka s kuřetem a sýrem dá slanou chuť a víc bílkovin."}],
+  partner:"grill"},
+ {id:"burger",en:"Burger / Fast food",cs:"Burger / Fast food",ic:"f_fast",col:"var(--cal)",
+  alts:[{ref:"beef",g:120,add:{ref:"bread",g:50},why_en:"A lean-beef patty on whole-grain bread is a real burger with half the fat.",why_cs:"Placka z libového hovězího na celozrnném chlebu je burger s polovinou tuku."},
+        {ref:"chicken",g:120,add:{ref:"tortilla",g:60},why_en:"A grilled chicken wrap hits the fast-food craving, high protein, lower fat.",why_cs:"Grilovaný kuřecí wrap zažene chuť, hodně bílkovin, méně tuku."}],
+  partner:"burrito"},
+ {id:"icecream",en:"Ice cream",cs:"Zmrzlina",ic:"f_sweet",col:"var(--carb)",
+  alts:[{ref:"greekyog",g:150,add:{ref:"berries",g:100},why_en:"Frozen Greek yogurt + berries eats like ice cream with protein instead of cream.",why_cs:"Mražený řecký jogurt s bobulemi chutná jako zmrzlina, s bílkovinami."},
+        {ref:"banana",g:120,why_en:"Blended frozen banana ‘nice cream’ is naturally sweet and creamy, zero added sugar.",why_cs:"Mražený rozmixovaný banán je přirozeně sladký a krémový."}]},
+ {id:"soda",en:"Soda / Sweet drink",cs:"Limonáda / Sladké pití",ic:"f_drink",col:"var(--carb)",
+  alts:[{ref:"whey",g:30,why_en:"A cold protein shake is sweet, satisfying and works toward your protein gap.",why_cs:"Studený protein shake je sladký a doplní bílkoviny."},
+        {ref:"strawberry",g:150,why_en:"Sparkling water with muddled strawberries scratches the sweet-fizzy itch for ~30 kcal.",why_cs:"Perlivá voda s jahodami zažene chuť za ~30 kcal."}]},
+ {id:"fries",en:"Fries / Fried",cs:"Hranolky / Smažené",ic:"f_fast",col:"var(--fat)",
+  alts:[{ref:"potato",g:200,why_en:"Oven-baked potato wedges give the potato-and-salt fix with a fraction of the oil.",why_cs:"Pečené bramborové měsíčky dají bramborovou chuť s méně oleje."},
+        {ref:"chickpea",g:100,why_en:"Crispy roasted chickpeas cover the salty-crunchy craving and add protein.",why_cs:"Křupavá pečená cizrna pokryje slano-křupavou chuť a přidá bílkoviny."}]}
+];
+let craveSel=null;
+function renderCrave(){
+ $("#craveHeader").innerHTML=`<div class="insight" style="margin-bottom:16px"><span class="ib">${ic("crave",{size:20})}</span><div class="it"><b>${L("Craving something you 'can't' have?","Chuť na něco, co ‚nesmíš‘?")}</b><p>${L("Tell us what you want. We'll map it to swaps that solve the craving and still fit your macros today — no shame, just a better route.","Řekni, na co máš chuť. Namapujeme to na varianty, které chuť zaženou a sednou do makUr.")}</p></div></div>
+   <div class="sec-title" style="margin-top:6px"><h3>${L("What are you craving?","Na co máš chuť?")}</h3></div>`;
+ $("#craveBody").innerHTML=`<div class="cravegrid" id="craveGrid">${CRAVINGS.map(c=>`<div class="craveopt" data-crave="${c.id}"><span class="cvic" style="background:color-mix(in srgb,${c.col} 15%,transparent);color:${c.col}">${ic(c.ic,{size:24})}</span><b>${LANG==="cs"?c.cs:c.en}</b></div>`).join("")}</div><div id="craveResult"></div>`;
+ $$("#craveGrid .craveopt").forEach(o=>o.onclick=()=>{craveSel=o.dataset.crave;renderCraveResult();});
+ if(craveSel)renderCraveResult();
+}
+function altMacros(a){let m=servingMacros(FMAP[a.ref],a.g);if(a.add){const m2=servingMacros(FMAP[a.add.ref],a.add.g);m={kcal:m.kcal+m2.kcal,p:m.p+m2.p,c:m.c+m2.c,f:m.f+m2.f};}return m;}
+function altName(a){let n=fname(FMAP[a.ref]);if(a.add)n+=" + "+fname(FMAP[a.add.ref]);return n;}
+function renderCraveResult(){
+ const c=CRAVINGS.find(x=>x.id===craveSel);const rem=remaining();
+ const scored=c.alts.map(a=>{const m=altMacros(a);return{a,m,pct:matchPct(scorePayload(m,{junk:0.05}))};}).sort((x,y)=>y.pct-x.pct);
+ let html=`<div class="sec-title"><h3>${ic("crave",{size:16,color:c.col})}${L("Swaps for","Náhrady za")} ${LANG==="cs"?c.cs:c.en}</h3></div>`;
+ scored.forEach(s=>{const toTarget=Math.min(100,Math.round((rem.tot.p+s.m.p)/S.targets.protein*100));
+  html+=`<div class="altcard"><div class="ahead">${gradeBadge(s.pct)}${foodTile(FMAP[s.a.ref],38)}<div style="flex:1"><div style="font-weight:800;font-size:14px">${altName(s.a)}</div><div class="muted" style="font-size:12px;font-weight:600">${Math.round(s.m.kcal)} kcal · P${Math.round(s.m.p)} C${Math.round(s.m.c)} F${Math.round(s.m.f)}</div></div><div style="font-weight:800;color:var(--green)">${s.pct}%</div></div>
+   <div class="why">${LANG==="cs"?s.a.why_cs:s.a.why_en}<br>${ic("dumbbell",{size:12,color:MC.P})} ${L("Gets you to "+toTarget+"% of your protein target.","Dostane tě na "+toTarget+"% cíle bílkovin.")}</div>
+   <button class="btn btn-primary btn-sm" style="width:100%;margin-top:8px" data-logalt='${encodeURIComponent(JSON.stringify(s.a))}'>${ic("plus",{size:14})}${L("Log this swap","Zapsat náhradu")}</button></div>`;});
+ // upsell
+ if(c.partner){const pl=PLACES.find(p=>p.id===c.partner);const best=bestItemOfPlace(pl);const locked=pl.premium&&!S.premium;
+  html+=`<div class="sec-title" style="margin:14px 2px 8px"><h3 style="font-size:14px">${ic("bike",{size:15,color:c.col})}${L("Order a better-for-you version","Objednej lepší verzi")}</h3></div>
+   <div class="altcard"><div class="ahead">${locked?'<span class="grade g-C sm">★</span>':gradeBadge(best.pct)}<div style="flex:1"><div style="font-weight:800;font-size:14px">${LANG==="cs"?best.it.cs:best.it.en} ${locked?ic("lock",{size:12,color:"var(--fat)"}):""}</div><div class="muted" style="font-size:12px;font-weight:600">${LANG==="cs"?pl.cs:pl.en} · ${price(best.it.price)}</div></div>${partnerBadge(pl.partner)}</div>
+   ${locked?`<div class="why">${L("Premium partner pick that fits your remaining macros.","Prémiová volba partnera, která sedne do maker.")}</div><button class="btn btn-dark btn-sm" style="width:100%;margin-top:8px" data-goprem>${L("Unlock with Premium","Odemknout s Premium")}</button>`:`<button class="btn btn-primary btn-sm" style="width:100%;margin-top:8px" data-order="${pl.partner}">${ic("bike",{size:14})}${L("Order on","Objednat na")} ${pl.partner==="wolt"?"Wolt":"foodora"}</button>`}</div>`;}
+ $("#craveResult").innerHTML=html;
+ $$("#craveResult [data-logalt]").forEach(b=>b.onclick=()=>{const a=JSON.parse(decodeURIComponent(b.dataset.logalt));logFood(FMAP[a.ref],a.g,guessMeal(),true);if(a.add)logFood(FMAP[a.add.ref],a.add.g,guessMeal(),true);save();toast(L("Swap logged","Náhrada zapsána"),"check");renderHome();});
+ $$("#craveResult [data-order]").forEach(b=>b.onclick=()=>toast(L("Opening delivery… (demo)","Otevírám doručení… (demo)"),"bike"));
+ $$("#craveResult [data-goprem]").forEach(b=>b.onclick=()=>go("profile"));
+ $("#craveResult").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+/* =========================================================================
+   HISTORY (premium) + streak
+   ========================================================================= */
+function isOnTarget(e){const tot=totalsFor(e);return tot.kcal>0&&tot.kcal<=S.targets.calories*1.05&&tot.p>=S.targets.protein*0.8;}
+function computeStreak(){let s=0;const d=Date.now();for(let i=0;i<60;i++){const k=new Date(d-i*864e5).toISOString().slice(0,10);const log=S.logs[k];if(i===0&&(!log||!log.length))continue;if(log&&log.length&&isOnTarget(log))s++;else if(i>0)break;}return s;}
+function dayGrade(tot){if(!tot.kcal)return null;const pct=matchPctDay(tot);return grade(pct);}
+function matchPctDay(tot){/* how balanced the day is vs targets */const g=S.targets;
+ const s=(1-Math.min(1,Math.abs(tot.kcal-g.calories)/g.calories))*0.4+(Math.min(1,tot.p/g.protein))*0.35+(1-Math.min(1,Math.abs(tot.c-g.carbs)/g.carbs))*0.15+(1-Math.min(1,Math.abs(tot.f-g.fat)/g.fat))*0.1;
+ return Math.round(s*100);}
+function renderHistory(){
+ const st=computeStreak();
+ const last7=[...Array(7)].map((_,i)=>{const k=new Date(Date.now()-i*864e5).toISOString().slice(0,10);return S.logs[k]&&isOnTarget(S.logs[k]);}).filter(Boolean).length;
+ let html=`<div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:14px">
+   <span style="width:52px;height:52px;border-radius:16px;background:color-mix(in srgb,var(--cal) 15%,transparent);color:var(--cal);display:flex;align-items:center;justify-content:center">${ic("flame",{size:26})}</span>
+   <div style="flex:1"><div style="font-size:30px;font-weight:800;line-height:1">${st} ${L("day"+(st===1?"":"s"),"dní")}</div><div class="muted" style="font-size:12px;font-weight:600">${L("macro streak","série makro dní")} · ${last7}/7 ${L("on target","na cíli")}</div></div></div>`;
+ // days
+ const days=[...Array(30)].map((_,i)=>{const d=new Date(Date.now()-i*864e5),k=d.toISOString().slice(0,10);const log=S.logs[k]||[];return{d,k,log,tot:totalsFor(log)};});
+ const shown=S.premium?days:days.slice(0,14);
+ html+=`<div class="sec-title"><h3>${ic("history",{size:16})}${S.premium?L("Full history","Celá historie"):L("Last 14 days","Posledních 14 dní")}</h3></div>`;
+ shown.forEach((x,idx)=>{const has=x.log.length;const g=has?dayGrade(x.tot):null;const open=S._histOpen===x.k;
+   const dl=x.d.toLocaleDateString(LANG==="cs"?"cs-CZ":"en-GB",{weekday:"short",day:"numeric",month:"short"});
+   html+=`<div class="widget ${open?'open':''}" data-day="${x.k}">
+     <div class="widget-head dayhead" data-day="${x.k}">
+       <span class="whic" style="background:${has?'color-mix(in srgb,var(--green) 14%,transparent)':'var(--border)'}">${has?gradeBadge(matchPctDay(x.tot),true):ic("minus",{size:16})}</span>
+       <div class="wtitle"><b>${dl}</b><span>${has?Math.round(x.tot.kcal)+" kcal · P"+Math.round(x.tot.p)+" C"+Math.round(x.tot.c)+" F"+Math.round(x.tot.f):L("No log","Bez záznamu")}</span></div>
+       ${has?'<span class="chev">'+ic("chevD",{size:18})+'</span>':''}</div>
+     ${has?`<div class="widget-body">${x.log.map(e=>`<div class="row">${foodTileFromLog(e)}<div class="info"><div class="nm">${LANG==="cs"?(e.name_cs||e.name_en):e.name_en} · ${e.amount}g</div><div class="mm">P${Math.round(e.p)} C${Math.round(e.c)} F${Math.round(e.f)} · ${mealName(e.meal)}</div></div><div class="kc">${Math.round(e.kcal)}</div></div>`).join("")}</div>`:''}
+   </div>`;});
+ if(!S.premium)html+=`<div class="locked" style="margin-top:6px"><div class="lk">${ic("lock",{size:22})}</div><h4>${L("See your long-term trend","Zobraz dlouhodobý trend")}</h4><p>${L("Full history, weight trend and advanced stats are a Premium feature.","Celá historie, trend váhy a pokročilé statistiky jsou v Premium.")}</p><button class="btn btn-primary" id="histProm">${ic("sparkle",{size:15})}${L("Unlock unlimited history","Odemknout historii")}</button></div>`;
+ $("#historyContent").innerHTML=html;
+ $$("#historyContent .dayhead").forEach(h=>h.onclick=()=>{const k=h.dataset.day;if(!S.logs[k]||!S.logs[k].length)return;S._histOpen=S._histOpen===k?null:k;renderHistory();});
+ const hp=$("#histProm");if(hp)hp.onclick=()=>go("profile");
+}
+
+/* =========================================================================
+   PROFILE (settings + premium + share + badges)
+   ========================================================================= */
+const INTERESTS=[["highprotein",L("High protein","Hodně bílkovin"),"dumbbell"],["vegetarian",L("Vegetarian","Vegetarián"),"leaf"],["vegan",L("Vegan","Vegan"),"f_leaf"],["lowcarb",L("Low carb","Nízké sacharidy"),"f_grain"],["budget",L("Budget-friendly","Levně"),"wallet"],["quick",L("Quick / no-prep","Rychle"),"zap"],["sweettooth",L("Sweet tooth","Mlsoun"),"f_sweet"],["wolt",L("I use Wolt","Používám Wolt"),"bike"],["foodora",L("I use foodora","Používám foodora"),"bike"]];
+const CITIES=["Prague","Brno","Ostrava","London","Berlin","Vienna"];
+const FEATS=[[ "sparkle",L("AI meal assistant & ‘Suggest me a meal’","AI asistent a ‚Navrhni jídlo‘")],["star",L("Full ranked recommendations & meal combos","Plná řazená doporučení a kombinace")],["pin",L("Premium Radar spots & partner delivery deals","Prémiová místa na Radaru a nabídky partnerů")],["history",L("Unlimited history, weight trend & stats","Neomezená historie, trend a statistiky")],["crave",L("Full Crave Mode swaps & orderable versions","Plné náhrady v Chuťovém režimu")]];
+function renderProfile(){
+ const plan=S.premium?L("Premium","Premium"):L("Free plan","Zdarma");
+ let html=`<div class="hero" style="margin-bottom:14px"><div class="glow"></div>
+   <div class="htop">${ic("profile",{size:16})} ${plan}</div>
+   <div style="font-size:22px;font-weight:800;margin-top:6px;position:relative">Food GPS</div>
+   <div class="sub">${L("Know what to eat next","Víš, co si dát dál")}</div></div>`;
+ // premium card
+ html+=`<div class="card" style="margin-bottom:14px"><div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">${ic("sparkle",{size:20,color:"var(--fat)"})}<b style="font-size:16px">Food GPS Premium</b></div>
+   ${FEATS.map(f=>`<div class="feat"><span class="ck">${ic("check",{size:16})}</span>${f[1]}</div>`).join("")}
+   <div class="pricegrid">${(LANG==="cs"?[["Měsíčně","129 Kč",""],["Ročně","999 Kč","−35%"],["Doživotně","1 999 Kč",""]]:[["Monthly","€4.99",""],["Annual","€39.99","−33%"],["Lifetime","€79",""]]).map((p,i)=>`<div class="price ${i===1?'best':''}"><div><div class="pt">${p[0]}</div>${p[2]?'<div class="ps">'+p[2]+'</div>':''}</div><div class="pp">${p[1]}</div></div>`).join("")}</div>
+   <button class="btn btn-primary" id="premBtn">${S.premium?ic("check",{size:16})+L(" Premium active — tap to toggle demo","Premium aktivní — přepnout demo"):ic("sparkle",{size:16})+L("Start Premium","Aktivovat Premium")}</button>
+   <p class="center muted" style="font-size:11px;margin:8px 0 0">${L("Demo: toggling unlocks all features for free.","Demo: přepnutí odemkne vše zdarma.")}</p></div>`;
+ // share
+ html+=`<div class="sec-title"><h3>${ic("compass",{size:16})}${L("Share your progress","Sdílej pokrok")}</h3></div>
+   <div class="seg" id="shareSeg" style="margin-bottom:10px"><button class="on" data-range="today">${L("Today","Dnes")}</button><button data-range="7">${L("7 days","7 dní")}</button><button data-range="30">${L("30 days","30 dní")}</button></div>
+   <div id="shareCardWrap"></div>
+   <button class="btn btn-primary" id="shareCopy" style="margin-top:10px">${ic("compass",{size:15})}${L("Copy share card","Kopírovat kartu")}</button>
+   <button class="btn btn-ghost" id="inviteBtn" style="margin-top:8px">${ic("profile",{size:15})}${L("Invite to my Food GPS circle","Pozvat do kruhu")}</button>`;
+ // badges
+ html+=`<div class="sec-title"><h3>${ic("star",{size:16,color:"var(--fat)"})}${L("Badges","Odznaky")}</h3></div><div class="badgegrid" id="badgeGrid"></div>`;
+ // targets
+ html+=`<div class="sec-title"><h3>${ic("target",{size:16})}${L("Targets","Cíle")}</h3></div>
+   <div class="card"><div class="field"><label>${L("Daily calories","Denní kalorie")}</label><input type="number" id="setCal" value="${S.targets.calories}"></div>
+   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px"><div class="field"><label>P (g)</label><input type="number" id="setP" value="${S.targets.protein}"></div><div class="field"><label>C (g)</label><input type="number" id="setC" value="${S.targets.carbs}"></div><div class="field"><label>F (g)</label><input type="number" id="setF" value="${S.targets.fat}"></div></div>
+   <div class="field"><label>${L("Show tips after","Zobrazit tipy po")}</label><div class="seg" id="threshSeg">${[["40","40%"],["50","50%"],["60","60%"],["70","70%"],["0",L("Always","Vždy")]].map(o=>`<button data-t="${o[0]}" class="${+o[0]===S.recThreshold?'on':''}">${o[1]}</button>`).join("")}</div></div>
+   <button class="btn btn-primary" id="saveTargets">${L("Save targets","Uložit cíle")}</button></div>`;
+ // interests
+ html+=`<div class="sec-title"><h3>${ic("heart",{size:16,color:"var(--protein)"})}${L("Your interests","Tvé preference")}</h3></div>
+   <div class="card"><div class="chipwrap" id="intWrap">${INTERESTS.map(i=>`<button class="chip ${has(i[0])?'sel':''}" data-int="${i[0]}">${ic(i[2],{size:14})}${i[1]}</button>`).join("")}</div>
+   <div class="field" style="margin-top:14px"><label>${ic("loc",{size:12})} ${L("Your city (for Radar)","Tvé město (pro Radar)")}</label><select id="citySel">${CITIES.map(c=>`<option ${c===S.city?'selected':''}>${c}</option>`).join("")}</select></div></div>`;
+ // appearance
+ html+=`<div class="sec-title"><h3>${ic("moon",{size:16})}${L("Appearance & language","Vzhled a jazyk")}</h3></div>
+   <div class="card"><div class="settingrow"><div class="lab">${L("Dark mode","Tmavý režim")}</div><div class="toggle ${S.dark?'on':''}" id="darkToggle"></div></div>
+   <div class="settingrow"><div class="lab">${L("Language","Jazyk")}</div><div class="seg" style="width:130px"><button id="pLangEn" class="${LANG==='en'?'on':''}">EN</button><button id="pLangCs" class="${LANG==='cs'?'on':''}">CS</button></div></div></div>
+   <button class="btn btn-ghost" id="resetAll" style="margin-top:14px">${ic("trash",{size:15})}${L("Reset all data & onboarding","Smazat data a onboarding")}</button>
+   <p class="center muted" style="font-size:11px;margin-top:12px">Food GPS · prototype · ${S.city}</p>`;
+ $("#profileContent").innerHTML=html;
+ // wire
+ $("#premBtn").onclick=()=>{S.premium=!S.premium;save();renderProfile();toast(S.premium?L("Premium active","Premium aktivní"):L("Back to Free","Zpět na Zdarma"),"sparkle");};
+ renderShareCard("today");renderBadges();
+ $$("#shareSeg button").forEach(b=>b.onclick=()=>{$$("#shareSeg button").forEach(x=>x.classList.toggle("on",x===b));renderShareCard(b.dataset.range);});
+ $("#shareCopy").onclick=async()=>{try{await navigator.clipboard.writeText(shareText());}catch(e){}toast(L("Copied","Zkopírováno"),"check");};
+ $("#inviteBtn").onclick=async()=>{try{await navigator.clipboard.writeText("Food GPS — "+L("join my circle","přidej se")+": https://foodgps.app/join/braqs");}catch(e){}toast(L("Invite link copied","Odkaz zkopírován"),"check");};
+ $("#saveTargets").onclick=()=>{S.targets.calories=+$("#setCal").value||S.targets.calories;S.targets.protein=+$("#setP").value||0;S.targets.carbs=+$("#setC").value||0;S.targets.fat=+$("#setF").value||0;save();toast(L("Saved","Uloženo"),"check");};
+ $$("#threshSeg button").forEach(b=>b.onclick=()=>{S.recThreshold=+b.dataset.t;save();renderProfile();});
+ $$("#intWrap [data-int]").forEach(b=>b.onclick=()=>{const k=b.dataset.int;if(has(k))S.interests=S.interests.filter(x=>x!==k);else S.interests.push(k);save();renderProfile();});
+ $("#citySel").onchange=e=>{S.city=e.target.value;save();};
+ $("#darkToggle").onclick=()=>{S.dark=!S.dark;save();applyTheme();renderProfile();};
+ $("#pLangEn").onclick=()=>{S.lang="en";save();applyLang();};
+ $("#pLangCs").onclick=()=>{S.lang="cs";save();applyLang();};
+ $("#resetAll").onclick=()=>{if(confirm(L("Erase all data and restart onboarding?","Smazat vše a spustit onboarding?"))){localStorage.removeItem("foodgps2");S=structuredClone(DEF);location.reload();}};
+}
+function renderShareCard(range){let data;
+ if(range==="today"){const rem=remaining();const sc=FOODS.filter(dietOk).map(scoreFood).sort((a,b)=>b.raw-a.raw)[0];
+   data={title:L("Today's Food GPS","Dnešní Food GPS"),rows:[[L("Cal left","Kal zbývá"),Math.max(0,Math.round(rem.kcal))],[L("Protein","Bílk."),Math.max(0,Math.round(rem.p))+"g"],[L("Carbs","Sach."),Math.max(0,Math.round(rem.c))+"g"],[L("Fat","Tuk"),Math.max(0,Math.round(rem.f))+"g"]],next:fname(sc.food)};}
+ else{const n=+range;const days=[...Array(n)].map((_,i)=>S.logs[new Date(Date.now()-i*864e5).toISOString().slice(0,10)]||[]);const on=days.filter(l=>l.length&&isOnTarget(l)).length;const withLog=days.filter(l=>l.length);const avg=Math.round(withLog.reduce((a,l)=>a+totalsFor(l).kcal,0)/(withLog.length||1));
+   data={title:n+L("-day recap","denní přehled"),rows:[[L("On target","Na cíli"),on+"/"+n],[L("Avg kcal","Prům. kcal"),avg||0],[L("Streak","Série"),computeStreak()],[L("Score","Skóre"),Math.round(on/n*100)+"%"]],next:on>=n*0.6?L("Nice steering","Skvělé řízení"):L("Back on route","Zpět na trasu")};}
+ $("#shareCardWrap").innerHTML=`<div class="sharecard"><div class="sbrand">${pinLogo(22)} Food GPS</div><div class="sbig">${data.title}</div>
+   <div class="srow">${data.rows.map(r=>`<div class="sm"><div class="n">${r[1]}</div><div class="l">${r[0]}</div></div>`).join("")}</div>
+   <div class="snext">${ic("fork",{size:14})}<div><small style="opacity:.7;display:block">${L("Best next meal","Nejlepší další")}</small>${data.next}</div></div></div>`;}
+function shareText(){const rem=remaining();const sc=FOODS.filter(dietOk).map(scoreFood).sort((a,b)=>b.raw-a.raw)[0];
+ return `Food GPS — ${L("today","dnes")}\n${L("Cal left","Kal zbývá")}: ${Math.max(0,Math.round(rem.kcal))}\nP ${Math.max(0,Math.round(rem.p))}g · C ${Math.max(0,Math.round(rem.c))}g · F ${Math.max(0,Math.round(rem.f))}g\n${L("Best next","Nejlepší")}: ${fname(sc.food)}`;}
+const BADGES=[["compass",L("First route","První trasa"),()=>Object.values(S.logs).some(l=>l.length)],["dumbbell",L("Protein hit","Bílkoviny"),()=>remaining().tot.p>=S.targets.protein*0.9],["flame",L("3-day streak","3 dny"),()=>computeStreak()>=3],["star",L("5 favorites","5 oblíbených"),()=>S.favorites.length>=5],["history",L("7-day streak","7 dní"),()=>computeStreak()>=7],["crave",L("Crave beat","Chuť poražena"),()=>S._craveBeat]];
+function renderBadges(){$("#badgeGrid").innerHTML=BADGES.map(b=>{const has=b[2]();return `<div class="badge ${has?'':'lockedb'}"><span style="color:${has?'var(--fat)':'var(--muted)'}">${ic(b[0],{size:24})}</span><div class="bn">${b[1]}</div></div>`;}).join("");}
+
+/* =========================================================================
+   NAV + shell render
+   ========================================================================= */
+const NAV=[["home",L("Home","Domů"),"home"],["radar",L("Radar","Radar"),"radar"],["crave",L("Crave","Chuť"),"crave"],["history",L("History","Historie"),"history"],["profile",L("Profile","Profil"),"profile"]];
+function renderNav(){
+ $("#nav").innerHTML=NAV.map(n=>`<button data-scr="${n[0]}" class="${n[0]===curScreen?'on':''}"><span class="navic">${ic(n[2],{size:22})}</span>${n[1]}</button>`).join("");
+ $("#sidebar").innerHTML=`<div class="sbrand">${pinLogo(28)} Food GPS</div>`+NAV.map(n=>`<button data-scr="${n[0]}" class="${n[0]===curScreen?'on':''}">${ic(n[2],{size:20})}${n[1]}</button>`).join("")
+   +`<div class="spacer"></div><button data-act="lang">${ic("globe",{size:20})}${LANG==="en"?"English":"Čeština"}</button><button data-act="theme">${ic(S.dark?"sun":"moon",{size:20})}${S.dark?L("Light","Světlý"):L("Dark","Tmavý")}</button>`;
+ $$("#nav [data-scr]").forEach(b=>b.onclick=()=>go(b.dataset.scr));
+ $$("#sidebar [data-scr]").forEach(b=>b.onclick=()=>go(b.dataset.scr));
+ $$("#sidebar [data-act]").forEach(b=>b.onclick=()=>{if(b.dataset.act==="lang"){S.lang=S.lang==="en"?"cs":"en";save();applyLang();}else{S.dark=!S.dark;save();applyTheme();renderNav();if(curScreen)go(curScreen);}});
+}
+let curScreen="home";
+function go(scr){curScreen=scr;
+ $$(".screen").forEach(s=>s.classList.remove("active"));
+ $("#scr-"+scr).classList.add("active");
+ renderNav();
+ if(scr==="home")renderHome();
+ if(scr==="radar")renderRadar();
+ if(scr==="crave")renderCrave();
+ if(scr==="history")renderHistory();
+ if(scr==="profile")renderProfile();
+ window.scrollTo(0,0);
+}
+
+/* =========================================================================
+   Sheets / toast / theme / lang
+   ========================================================================= */
+function openSheet(which,body){if(which==="food"){$("#foodOverlay").classList.add("show");}else{if(body!==undefined)$("#amtBody").innerHTML=body;$("#amtOverlay").classList.add("show");}}
+function closeSheets(){$("#foodOverlay").classList.remove("show");$("#amtOverlay").classList.remove("show");}
+function toast(msg,icn){const el=$("#toast");el.innerHTML=(icn?ic(icn,{size:16}):"")+msg;el.classList.add("show");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("show"),1800);}
+function applyTheme(){document.documentElement.setAttribute("data-theme",S.dark?"dark":"light");$("#themeBtn").innerHTML=ic(S.dark?"sun":"moon",{size:18});}
+function applyLang(){LANG=S.lang;$$("[data-i]").forEach(el=>el.textContent=t(el.dataset.i));$("#langBtn").textContent=LANG==="en"?"EN":"CS";
+ // rebuild dynamic bits
+ $("#brandPin").innerHTML=pinLogo(30);$("#searchIc").innerHTML=ic("search",{size:18,color:"var(--muted)"});
+ renderNav();if(S.onboarded&&curScreen)go(curScreen);}
+
+/* =========================================================================
+   ONBOARDING
+   ========================================================================= */
+let obStep=0,obData={goal:"maintain",calories:2200,protein:150,carbs:220,fat:70,thresh:50,interests:[],city:"Prague",lang:"en"};
+const GP={lose:{c:1800,p:150,carb:150,f:60},maintain:{c:2200,p:150,carb:220,f:70},gain:{c:2600,p:180,carb:280,f:80}};
+const OB_STEPS=7;
+function renderOb(){const b=$("#obBody"),T=(en,cs)=>obData.lang==="cs"?cs:en;let h="";
+ if(obStep===0){h=`<div class="center" style="margin-bottom:6px">${pinLogo(64)}</div><div class="center"><h2 style="font-size:28px;margin-bottom:2px">Food GPS</h2><p class="muted" style="font-weight:600">${T("Know what to eat next","Víš, co si dát dál")}</p></div>
+   <div class="step">${T("Step 1 of 7","Krok 1 ze 7")}</div><h2>${T("What is your goal?","Jaký je tvůj cíl?")}</h2>
+   <div class="optcol">${[["lose","f_grain",T("Lose weight","Zhubnout")],["maintain","target",T("Maintain","Udržet")],["gain","dumbbell",T("Gain muscle","Nabrat svaly")]].map(o=>`<div class="opt ${obData.goal===o[0]?'sel':''}" data-goal="${o[0]}"><span class="oic">${ic(o[1],{size:22})}</span>${o[2]}</div>`).join("")}</div>`;}
+ else if(obStep===1){h=`<div class="step">${T("Step 2 of 7","Krok 2 ze 7")}</div><h2>${T("Set your daily calories","Nastav denní kalorie")}</h2><div class="field"><label>${T("Daily calories","Denní kalorie")}</label><input type="number" id="obCal" value="${obData.calories}"></div><p class="muted center" style="font-size:12px">${T("Suggested","Doporučeno")}: ${GP[obData.goal].c} kcal</p>`;}
+ else if(obStep===2){h=`<div class="step">${T("Step 3 of 7","Krok 3 ze 7")}</div><h2>${T("Set your macros","Nastav makra")}</h2><div class="field"><label>${ic("dumbbell",{size:12,color:MC.P})} ${T("Protein","Bílkoviny")} (g)</label><input type="number" id="obP" value="${obData.protein}"></div><div class="field"><label>${ic("f_grain",{size:12,color:MC.C})} ${T("Carbs","Sacharidy")} (g)</label><input type="number" id="obC" value="${obData.carbs}"></div><div class="field"><label>${ic("f_oil",{size:12,color:MC.F})} ${T("Fat","Tuky")} (g)</label><input type="number" id="obF" value="${obData.fat}"></div>`;}
+ else if(obStep===3){h=`<div class="step">${T("Step 4 of 7","Krok 4 ze 7")}</div><h2>${T("When should tips appear?","Kdy zobrazit tipy?")}</h2><div class="optcol">${[[40,"40%"],[50,"50%"],[60,"60%"],[70,"70%"],[0,T("Always","Vždy")]].map(o=>`<div class="opt ${obData.thresh===o[0]?'sel':''}" data-thresh="${o[0]}">${o[1]}${o[0]!==0?" "+T("of calories","kalorií"):""}</div>`).join("")}</div>`;}
+ else if(obStep===4){h=`<div class="step">${T("Step 5 of 7","Krok 5 ze 7")}</div><h2>${T("What matters to you?","Co je pro tebe důležité?")}</h2><p class="muted" style="font-weight:600;margin-top:-10px;font-size:13px">${T("Pick any — we tailor recommendations, Radar and swaps to these.","Vyber cokoli — přizpůsobíme doporučení, Radar i náhrady.")}</p>
+   <div class="chipwrap">${INTERESTS.map(i=>`<button class="chip ${obData.interests.includes(i[0])?'sel':''}" data-int="${i[0]}">${ic(i[2],{size:14})}${i[1]}</button>`).join("")}</div>
+   <div class="field" style="margin-top:16px"><label>${ic("loc",{size:12})} ${T("Your city (for nearby Radar)","Tvé město (pro Radar)")}</label><select id="obCity">${CITIES.map(c=>`<option ${c===obData.city?'selected':''}>${c}</option>`).join("")}</select></div>`;}
+ else if(obStep===5){h=`<div class="step">${T("Step 6 of 7","Krok 6 ze 7")}</div><h2>${T("Choose language","Vyber jazyk")}</h2><div class="optcol"><div class="opt ${obData.lang==='en'?'sel':''}" data-lang="en"><span class="oic">${ic("globe",{size:22})}</span>English</div><div class="opt ${obData.lang==='cs'?'sel':''}" data-lang="cs"><span class="oic">${ic("globe",{size:22})}</span>Čeština</div></div>`;}
+ else{h=`<div class="center" style="margin:6px 0">${pinLogo(72)}</div><h2 class="center">${T("You're ready.","Můžeš vyrazit.")}</h2><p class="muted center" style="font-weight:600">${T("You are here. These macros remain. Let's find your next food.","Jsi tady. Tohle ti zbývá. Najdeme další jídlo.")}</p>
+   <div class="card" style="margin-top:16px"><div class="settingrow" style="border:none"><div class="lab">${ic("flame",{size:15,color:"var(--cal)"})} ${obData.calories} kcal</div><div class="muted">${T("target","cíl")}</div></div>
+   <div style="display:flex;justify-content:space-around;margin-top:4px">${[["P",obData.protein,MC.P],["C",obData.carbs,MC.C],["F",obData.fat,MC.F]].map(m=>`<div class="center"><div style="font-weight:800;color:${m[2]}">${m[1]}g</div><div class="muted" style="font-size:11px">${m[0]}</div></div>`).join("")}</div></div>`;}
+ b.innerHTML=h;
+ $("#obDots").innerHTML=[...Array(OB_STEPS)].map((_,i)=>`<i class="${i===obStep?'on':''}"></i>`).join("");
+ $("#obNext").textContent=obStep===OB_STEPS-1?T("Start tracking","Začít"):T("Continue","Pokračovat");
+ $("#obBack").style.display=obStep===0?"none":"block";$("#obBack").textContent=T("Back","Zpět");
+ $$("[data-goal]").forEach(o=>o.onclick=()=>{obData.goal=o.dataset.goal;const g=GP[obData.goal];obData.calories=g.c;obData.protein=g.p;obData.carbs=g.carb;obData.fat=g.f;renderOb();});
+ $$("[data-thresh]").forEach(o=>o.onclick=()=>{obData.thresh=+o.dataset.thresh;renderOb();});
+ $$("[data-lang]").forEach(o=>o.onclick=()=>{obData.lang=o.dataset.lang;renderOb();});
+ $$("#obBody [data-int]").forEach(o=>o.onclick=()=>{const k=o.dataset.int;if(obData.interests.includes(k))obData.interests=obData.interests.filter(x=>x!==k);else obData.interests.push(k);renderOb();});
+ const cy=$("#obCity");if(cy)cy.onchange=e=>obData.city=e.target.value;
+}
+function obNext(){
+ if(obStep===1)obData.calories=+$("#obCal").value||obData.calories;
+ if(obStep===2){obData.protein=+$("#obP").value||0;obData.carbs=+$("#obC").value||0;obData.fat=+$("#obF").value||0;}
+ if(obStep<OB_STEPS-1){obStep++;renderOb();}
+ else{S.onboarded=true;S.goal=obData.goal;S.lang=obData.lang;S.recThreshold=obData.thresh;S.interests=obData.interests;S.city=obData.city;S.targets={calories:obData.calories,protein:obData.protein,carbs:obData.carbs,fat:obData.fat};save();applyLang();seedDemo();$("#scr-onboard").classList.remove("active");go("home");}
+}
+
+/* =========================================================================
+   Seed demo history
+   ========================================================================= */
+function seedDemo(){if(S._seeded)return;S._seeded=true;const samples=[["chicken",150],["rice",150],["banana",120],["skyr",150],["oats",50],["almonds",25]];
+ for(let i=1;i<=6;i++){const k=new Date(Date.now()-i*864e5).toISOString().slice(0,10);if(S.logs[k])continue;const day=[];samples.forEach((s,idx)=>{if((i+idx)%2===0||idx<3){const f=FMAP[s[0]],m=servingMacros(f,s[1]);day.push({id:f.id,name_en:f.en,name_cs:f.cs,cat:f.cat,amount:s[1],meal:["breakfast","lunch","dinner","snack"][idx%4],kcal:m.kcal,p:m.p,c:m.c,f:m.f});}});S.logs[k]=day;}save();}
+
+/* =========================================================================
+   Wire global + boot
+   ========================================================================= */
+$("#obNext").onclick=obNext;
+$("#obBack").onclick=()=>{if(obStep>0){obStep--;renderOb();}};
+$("#addFoodBtn").onclick=openFood;
+$("#langBtn").onclick=()=>{S.lang=S.lang==="en"?"cs":"en";save();applyLang();};
+$("#themeBtn").onclick=()=>{S.dark=!S.dark;save();applyTheme();if(curScreen)go(curScreen);};
+$("#foodOverlay").onclick=e=>{if(e.target.id==="foodOverlay")closeSheets();};
+$("#amtOverlay").onclick=e=>{if(e.target.id==="amtOverlay")closeSheets();};
+$("#foodSearch").oninput=renderFoodList;
+
+applyTheme();LANG=S.lang;applyLang();
+if(S.onboarded){seedDemo();$("#scr-onboard").classList.remove("active");go("home");}
+else{obData.lang=S.lang;renderOb();}
+</script>
+</body>
+</html>
